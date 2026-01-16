@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ElXora - AI Lua Scripter for Roblox</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet"/>
+  <!-- For syntax highlighting in generated code (optional but nice) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+</head>
+<body>
+  <div class="access-screen" id="accessScreen">
+    <div class="access-card">
+      <h1 class="glow">ElXora</h1>
+      <p>AI-Powered Luau Scripting for Roblox Studio</p>
+      <form id="accessForm">
+        <input type="text" id="accessCode" placeholder="Enter access code" required />
+        <button type="submit" class="btn-neon">Unlock</button>
+      </form>
+      <p id="errorMsg" class="error"></p>
+    </div>
+  </div>
+
+  <div class="main-content hidden" id="mainContent">
+    <header>
+      <h1 class="glow">ElXora</h1>
+      <p>Generate powerful Luau scripts with AI</p>
+    </header>
+
+    <main>
+      <div class="prompt-box">
+        <textarea id="prompt" placeholder="Describe your script... e.g. 'simple obby checkpoint system with leaderstats, particles, and sound effects'"></textarea>
+        <button id="generateBtn" class="btn-neon">Generate Script</button>
+      </div>
+
+      <div class="output hidden" id="output">
+        <h2>Generated Luau Code</h2>
+        <pre><code class="language-lua" id="codeOutput">-- Your AI-generated code will appear here...</code></pre>
+        <button id="copyBtn" class="copy-btn">Copy Code</button>
+      </div>
+    </main>
+
+    <footer>
+      <p>ElXora © 2026 • Roblox AI Tool</p>
+    </footer>
+  </div>
+
+  <script>
+    const accessScreen = document.getElementById('accessScreen');
+    const mainContent = document.getElementById('mainContent');
+    const form = document.getElementById('accessForm');
+    const errorMsg = document.getElementById('errorMsg');
+
+    // Simple access gate (change 'beta2026' to your preferred code)
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const code = document.getElementById('accessCode').value.trim();
+      if (code === 'beta2026') {
+        localStorage.setItem('elxora_access', 'ok');
+        accessScreen.classList.add('hidden');
+        mainContent.classList.remove('hidden');
+      } else {
+        errorMsg.textContent = 'Wrong code – try again';
+      }
+    });
+
+    // Check if already accessed
+    if (localStorage.getItem('elxora_access') === 'ok') {
+      accessScreen.classList.add('hidden');
+      mainContent.classList.remove('hidden');
+    }
+
+    // Placeholder generate button (add real AI fetch later)
+    document.getElementById('generateBtn').addEventListener('click', () => {
+      const prompt = document.getElementById('prompt').value.trim();
+      if (!prompt) return alert('Enter a description first!');
+      
+      // Fake output for now
+      const fakeCode = `-- Example from ElXora AI\nlocal Players = game:GetService("Players")\n\nPlayers.PlayerAdded:Connect(function(player)\n    local leaderstats = Instance.new("Folder")\n    leaderstats.Name = "leaderstats"\n    leaderstats.Parent = player\n    \n    local checkpoints = Instance.new("IntValue")\n    checkpoints.Name = "Checkpoints"\n    checkpoints.Value = 0\n    checkpoints.Parent = leaderstats\nend)`;
+      
+      document.getElementById('codeOutput').textContent = fakeCode;
+      document.getElementById('output').classList.remove('hidden');
+      Prism.highlightAll(); // Highlight code
+    });
+
+    // Copy button
+    document.getElementById('copyBtn').addEventListener('click', () => {
+      const code = document.getElementById('codeOutput').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        alert('Code copied!');
+      });
+    });
+  </script>
+</body>
+</html>
