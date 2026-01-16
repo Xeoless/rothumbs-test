@@ -6,7 +6,6 @@
   <title>ElXora - AI Lua Scripter for Roblox</title>
   <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet"/>
-  <!-- Prism for code highlighting -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
 </head>
@@ -26,30 +25,30 @@
   <div class="main-content hidden" id="mainContent">
     <header>
       <h1 class="glow">ElXora</h1>
-      <p>Generate powerful Luau scripts with AI</p>
+      <p>Ask me anything Roblox — I'll script it Grok-style</p>
     </header>
 
     <main>
       <div class="prompt-box">
-        <textarea id="prompt" placeholder="Describe your script... e.g. 'simple obby checkpoint system with leaderstats, particles, and sound effects'"></textarea>
+        <textarea id="prompt" placeholder="Yo, script me... (e.g. a flying car tool, tycoon with auto-upgrades, admin panel with kicks/bans)"></textarea>
         <button id="generateBtn" class="btn-neon">Generate Script</button>
       </div>
 
       <div class="output hidden" id="output">
-        <h2>Generated Luau Code</h2>
+        <h2>ElXora (Grok Mode)</h2>
         <pre><code class="language-lua" id="codeOutput"></code></pre>
-        <div id="cursor" class="blinking-cursor">|</div> <!-- Blinking cursor during typing -->
+        <div id="cursor" class="blinking-cursor">|</div>
         <button id="copyBtn" class="copy-btn">Copy Code</button>
       </div>
     </main>
 
     <footer>
-      <p>ElXora © 2026 • Roblox AI Tool</p>
+      <p>Powered by Groq • ElXora © 2026 • Kevin's AI Tool</p>
     </footer>
   </div>
 
   <script>
-    // Access gate (unchanged)
+    // Access gate
     const accessScreen = document.getElementById('accessScreen');
     const mainContent = document.getElementById('mainContent');
     const form = document.getElementById('accessForm');
@@ -72,57 +71,83 @@
       mainContent.classList.remove('hidden');
     }
 
-    // ── Typing Animation Function (Grok/ChatGPT style) ──
-    function typeWriter(element, text, speed = 30, callback) {
+    // Typing animation (natural feel)
+    function typeWriter(element, text, speed = 22, callback) {
       let i = 0;
-      element.textContent = ''; // Clear previous content
+      element.textContent = '';
       const cursor = document.getElementById('cursor');
-      cursor.style.display = 'inline'; // Show cursor while typing
+      cursor.style.display = 'inline';
 
       function type() {
         if (i < text.length) {
           element.textContent += text.charAt(i);
           i++;
-          // Randomize speed a bit for natural feel (like human typing)
-          const randomDelay = speed + Math.random() * 40 - 20;
+          const randomDelay = speed + Math.random() * 30 - 10;
           setTimeout(type, randomDelay);
         } else {
-          cursor.style.display = 'none'; // Hide cursor when done
-          Prism.highlightElement(element); // Highlight after typing finishes
+          cursor.style.display = 'none';
+          Prism.highlightElement(element);
           if (callback) callback();
         }
       }
       type();
     }
 
-    // Generate button
-    document.getElementById('generateBtn').addEventListener('click', () => {
+    // Generate with real Groq API (your key here)
+    document.getElementById('generateBtn').addEventListener('click', async () => {
       const prompt = document.getElementById('prompt').value.trim();
-      if (!prompt) return alert('Enter a description first!');
+      if (!prompt) return alert('Drop your script idea, bro!');
 
       const outputDiv = document.getElementById('output');
       const codeElement = document.getElementById('codeOutput');
-
       outputDiv.classList.remove('hidden');
 
-      // Fake AI response for now (replace this with real API later)
-      const fakeResponse = `-- ElXora AI generated this for you!\n-- Prompt: ${prompt}\n\nlocal Players = game:GetService("Players")\nlocal ReplicatedStorage = game:GetService("ReplicatedStorage")\n\nPlayers.PlayerAdded:Connect(function(player)\n    local leaderstats = Instance.new("Folder")\n    leaderstats.Name = "leaderstats"\n    leaderstats.Parent = player\n    \n    local checkpoints = Instance.new("IntValue")\n    checkpoints.Name = "Checkpoints"\n    checkpoints.Value = 0\n    checkpoints.Parent = leaderstats\n    \n    print(player.Name .. " joined! Checkpoints initialized.")\nend)\n\n-- Add more features like respawn at checkpoint, sounds, etc.`;
+      // PASTE YOUR KEY HERE ↓↓↓ (keep it secret!)
+      const GROQ_API_KEY = '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';
 
-      // Start typing animation
-      typeWriter(codeElement, fakeResponse, 25, () => {
-        // Optional: enable copy button only after typing done
-        document.getElementById('copyBtn').disabled = false;
-      });
+      try {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${GROQ_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',  // Fast, smart, good at code
+            messages: [
+              {
+                role: 'system',
+                content: `You are Grok 3 from xAI, but dialed in as ElXora — the chill, no-BS Roblox Luau scripting expert. 
+Respond exactly like Grok: helpful, straight-up, a touch sarcastic/funny if it fits, zero fluff.
+Always output clean Luau code with -- comments, best practices (WaitForChild, task library, no deprecated stuff).
+Structure: Short intro like "Alright Kevin, here's your [thing]:", then the code block, then tips/fixes if needed.
+If unclear, ask chill questions back.`
+              },
+              { role: 'user', content: prompt }
+            ],
+            temperature: 0.75,
+            max_tokens: 2500,
+            top_p: 0.95
+          })
+        });
+
+        if (!response.ok) throw new Error(`Groq error: ${response.status} - ${await response.text()}`);
+
+        const data = await response.json();
+        const aiReply = data.choices[0].message.content.trim();
+
+        typeWriter(codeElement, aiReply);
+
+      } catch (err) {
+        typeWriter(codeElement, `-- Damn, something broke: ${err.message}\n\nDouble-check your key or try again in a bit.`);
+        console.error(err);
+      }
     });
 
-    // Copy button
+    // Copy
     document.getElementById('copyBtn').addEventListener('click', () => {
-      const code = document.getElementById('codeOutput').textContent;
-      navigator.clipboard.writeText(code).then(() => {
-        alert('Code copied to clipboard!');
-      }).catch(err => {
-        alert('Failed to copy: ' + err);
-      });
+      const text = document.getElementById('codeOutput').textContent;
+      navigator.clipboard.writeText(text).then(() => alert('Copied — slap it in Studio!')).catch(() => alert('Copy failed, highlight manually.'));
     });
   </script>
 </body>
