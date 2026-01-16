@@ -4,14 +4,43 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>ElXora - AI Lua Scripter for Roblox</title>
-  <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#0f0f0f; color:#e0e0ff; font-family:'Inter',sans-serif; min-height:100vh; margin:0; }
+    h1,h2 { font-family:'Orbitron',sans-serif; }
+    .glow { text-shadow:0 0 12px #a855f7, 0 0 24px #7e22ce; }
+    .access-screen { display:flex; align-items:center; justify-content:center; min-height:100vh; background:linear-gradient(135deg,#0f0f0f,#220033); padding:20px; }
+    .access-card { background:rgba(20,20,30,0.9); border:2px solid #a855f7; border-radius:24px; padding:50px 40px; max-width:480px; width:100%; text-align:center; box-shadow:0 0 60px rgba(168,85,247,0.4); }
+    .access-card h1 { font-size:4.2rem; margin-bottom:20px; }
+    input { width:100%; padding:18px; margin:20px 0; background:#1c1c2e; border:2px solid #7e22ce; border-radius:14px; color:white; font-size:1.2rem; }
+    input:focus { border-color:#c084fc; box-shadow:0 0 20px rgba(168,85,247,0.5); }
+    .btn-neon { width:100%; padding:18px; background:linear-gradient(135deg,#a855f7,#7e22ce); border:none; border-radius:14px; color:white; font-size:1.3rem; font-weight:bold; cursor:pointer; box-shadow:0 0 30px rgba(168,85,247,0.6); transition:all 0.3s; }
+    .btn-neon:hover { transform:translateY(-3px); box-shadow:0 0 45px rgba(168,85,247,0.9); }
+    .main-content { padding:30px; max-width:1000px; margin:0 auto; }
+    header { text-align:center; margin-bottom:50px; }
+    header h1 { font-size:5rem; }
+    header p { font-size:1.5rem; color:#c4b5fd; }
+    .prompt-box { background:rgba(20,20,40,0.85); border:2px solid #7e22ce; border-radius:24px; padding:35px; margin-bottom:40px; box-shadow:0 0 50px rgba(126,34,206,0.3); }
+    textarea { width:100%; min-height:160px; padding:20px; background:#111122; border:2px solid #a855f7; border-radius:16px; color:white; font-size:1.15rem; resize:vertical; margin-bottom:25px; }
+    textarea:focus { border-color:#c084fc; outline:none; box-shadow:0 0 25px rgba(192,132,252,0.4); }
+    .chat-container { display:flex; flex-direction:column; gap:30px; min-height:300px; }
+    .message { max-width:85%; padding:16px 20px; border-radius:20px; position:relative; word-wrap:break-word; display:flex; align-items:flex-start; }
+    .ai-message { align-self:flex-start; background:linear-gradient(135deg,#4c1d95,#7e22ce); border-bottom-left-radius:4px; }
+    .ai-message::after { content:''; position:absolute; bottom:0; left:-10px; border:10px solid transparent; border-right-color:#7e22ce; border-bottom:0; }
+    .user-message { align-self:flex-end; background:linear-gradient(135deg,#3b82f6,#2563eb); border-bottom-right-radius:4px; flex-direction:row-reverse; }
+    .avatar { width:40px; height:40px; border-radius:50%; background:#a855f7; display:flex; align-items:center; justify-content:center; font-size:1.2rem; font-weight:bold; margin:0 10px; flex-shrink:0; }
+    .message-content { white-space:pre-wrap; flex:1; }
+    .blinking-cursor { color:#c084fc; animation:blink 0.7s infinite; }
+    @keyframes blink { 50% { opacity:0; } }
+    .hidden { display:none !important; }
+    footer { text-align:center; margin-top:60px; color:#666; font-size:0.9rem; }
+  </style>
 </head>
 <body>
 
-  <!-- Access / Login Screen -->
   <div class="access-screen" id="accessScreen">
     <div class="access-card">
       <h1 class="glow">ElXora</h1>
@@ -24,7 +53,6 @@
     </div>
   </div>
 
-  <!-- Main Chat Interface -->
   <div class="main-content hidden" id="mainContent">
     <header>
       <h1 class="glow">ElXora</h1>
@@ -38,13 +66,11 @@
 
     <div class="chat-container" id="chatContainer"></div>
 
-    <footer style="text-align:center; margin-top:60px; color:#666; font-size:0.9rem;">
-      Powered by Groq • ElXora © 2026
-    </footer>
+    <footer>Powered by Groq • ElXora © 2026</footer>
   </div>
 
   <script>
-    // Access gate logic
+    // Access gate
     const accessScreen = document.getElementById('accessScreen');
     const mainContent = document.getElementById('mainContent');
     const form = document.getElementById('accessForm');
@@ -67,10 +93,10 @@
       mainContent.classList.remove('hidden');
     }
 
-    // Faster typing animation (~10-15ms per char)
-    function typeWriter(element, text, speed = 12, callback) {
+    // Fast typing
+    function typeWriter(element, text, speed = 10, callback) {
       let i = 0;
-      element.innerHTML = ''; // Clear content
+      element.innerHTML = '';
       const cursor = document.createElement('span');
       cursor.className = 'blinking-cursor';
       cursor.textContent = '|';
@@ -80,10 +106,9 @@
         if (i < text.length) {
           element.insertBefore(document.createTextNode(text.charAt(i)), cursor);
           i++;
-          setTimeout(type, speed + Math.random() * 8); // slight variation for natural feel
+          setTimeout(type, speed + Math.random() * 6);
         } else {
           cursor.remove();
-          // Highlight any <code> blocks inside if present
           element.querySelectorAll('code').forEach(Prism.highlightElement);
           if (callback) callback();
         }
@@ -91,33 +116,27 @@
       type();
     }
 
-    // Generate AI response
+    // Send prompt
     document.getElementById('generateBtn').addEventListener('click', async () => {
       const prompt = document.getElementById('prompt').value.trim();
       if (!prompt) return alert('Say something bro!');
 
       const chat = document.getElementById('chatContainer');
 
-      // User message bubble (simple right-side feel – you can style further)
+      // User bubble (right, blue)
       const userBubble = document.createElement('div');
       userBubble.className = 'message user-message';
-      userBubble.style.alignSelf = 'flex-end';
-      userBubble.style.background = 'linear-gradient(135deg, #3b82f6, #2563eb)';
-      userBubble.innerHTML = `<div class="message-content">${prompt}</div>`;
+      userBubble.innerHTML = `<div class="avatar">You</div><div class="message-content">${prompt}</div>`;
       chat.appendChild(userBubble);
 
-      // AI response bubble
+      // AI bubble (left, purple)
       const aiBubble = document.createElement('div');
       aiBubble.className = 'message ai-message';
-      aiBubble.innerHTML = `
-        <div class="avatar">E</div>
-        <div class="message-content" id="tempAiContent"></div>
-      `;
+      aiBubble.innerHTML = `<div class="avatar">E</div><div class="message-content" id="aiReply"></div>`;
       chat.appendChild(aiBubble);
 
-      const aiContent = document.getElementById('tempAiContent');
+      const aiReply = document.getElementById('aiReply');
 
-      // Your Groq API key
       const GROQ_API_KEY = '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';
 
       try {
@@ -130,30 +149,27 @@
           body: JSON.stringify({
             model: 'llama-3.3-70b-versatile',
             messages: [
-              {
-                role: 'system',
-                content: 'You are Grok — fast, helpful Roblox Luau expert as ElXora. Respond quick, chill, witty if fits. Give clean code with -- comments.'
-              },
-              { role: 'user', content: prompt }
+              {role: 'system', content: 'You are Grok as ElXora — fast Roblox Luau scripter. Respond quick, helpful, witty. Clean code with -- comments.'},
+              {role: 'user', content: prompt}
             ],
             temperature: 0.7,
             max_tokens: 2000
           })
         });
 
-        if (!res.ok) throw new Error(`Groq error: ${res.status}`);
+        if (!res.ok) throw new Error('Groq error');
 
         const data = await res.json();
         const reply = data.choices[0].message.content.trim();
 
-        typeWriter(aiContent, reply, 10); // fast typing
+        typeWriter(aiReply, reply);
 
       } catch (e) {
-        typeWriter(aiContent, `-- Error: ${e.message}\nCheck key or try again later.`);
+        typeWriter(aiReply, `-- Error: ${e.message}\nTry again or check key.`);
       }
 
-      document.getElementById('prompt').value = ''; // clear input
-      chat.scrollTop = chat.scrollHeight; // auto-scroll to bottom
+      document.getElementById('prompt').value = '';
+      chat.scrollTop = chat.scrollHeight;
     });
   </script>
 </body>
