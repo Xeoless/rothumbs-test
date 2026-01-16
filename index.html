@@ -9,34 +9,174 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
-    body { background:#0f0f0f; color:#e0e0ff; font-family:'Inter',sans-serif; min-height:100vh; margin:0; }
-    h1,h2 { font-family:'Orbitron',sans-serif; }
-    .glow { text-shadow:0 0 12px #a855f7, 0 0 24px #7e22ce; }
-    .access-screen { display:flex; align-items:center; justify-content:center; min-height:100vh; background:linear-gradient(135deg,#0f0f0f,#220033); padding:20px; }
-    .access-card { background:rgba(20,20,30,0.9); border:2px solid #a855f7; border-radius:24px; padding:50px 40px; max-width:480px; width:100%; text-align:center; box-shadow:0 0 60px rgba(168,85,247,0.4); }
-    .access-card h1 { font-size:4.2rem; margin-bottom:20px; }
-    input { width:100%; padding:18px; margin:20px 0; background:#1c1c2e; border:2px solid #7e22ce; border-radius:14px; color:white; font-size:1.2rem; }
-    input:focus { border-color:#c084fc; box-shadow:0 0 20px rgba(168,85,247,0.5); }
-    .btn-neon { width:100%; padding:18px; background:linear-gradient(135deg,#a855f7,#7e22ce); border:none; border-radius:14px; color:white; font-size:1.3rem; font-weight:bold; cursor:pointer; box-shadow:0 0 30px rgba(168,85,247,0.6); transition:all 0.3s; }
-    .btn-neon:hover { transform:translateY(-3px); box-shadow:0 0 45px rgba(168,85,247,0.9); }
-    .main-content { padding:30px; max-width:1000px; margin:0 auto; }
-    header { text-align:center; margin-bottom:50px; }
-    header h1 { font-size:5rem; }
-    header p { font-size:1.5rem; color:#c4b5fd; }
-    .prompt-box { background:rgba(20,20,40,0.85); border:2px solid #7e22ce; border-radius:24px; padding:35px; margin-bottom:40px; box-shadow:0 0 50px rgba(126,34,206,0.3); }
-    textarea { width:100%; min-height:160px; padding:20px; background:#111122; border:2px solid #a855f7; border-radius:16px; color:white; font-size:1.15rem; resize:vertical; margin-bottom:25px; }
-    textarea:focus { border-color:#c084fc; outline:none; box-shadow:0 0 25px rgba(192,132,252,0.4); }
-    .chat-container { display:flex; flex-direction:column; gap:30px; min-height:300px; }
-    .message { max-width:85%; padding:16px 20px; border-radius:20px; position:relative; word-wrap:break-word; display:flex; align-items:flex-start; }
-    .ai-message { align-self:flex-start; background:linear-gradient(135deg,#4c1d95,#7e22ce); border-bottom-left-radius:4px; }
-    .ai-message::after { content:''; position:absolute; bottom:0; left:-10px; border:10px solid transparent; border-right-color:#7e22ce; border-bottom:0; }
-    .user-message { align-self:flex-end; background:linear-gradient(135deg,#3b82f6,#2563eb); border-bottom-right-radius:4px; flex-direction:row-reverse; }
-    .avatar { width:40px; height:40px; border-radius:50%; background:#a855f7; display:flex; align-items:center; justify-content:center; font-size:1.2rem; font-weight:bold; margin:0 10px; flex-shrink:0; }
-    .message-content { white-space:pre-wrap; flex:1; }
-    .blinking-cursor { color:#c084fc; animation:blink 0.7s infinite; }
+    body {
+      background:#0a0a0f;
+      color:#e0e0ff;
+      font-family:'Inter',sans-serif;
+      height:100vh;
+      display:flex;
+      overflow:hidden;
+    }
+    .sidebar {
+      width:280px;
+      background:#111118;
+      border-right:1px solid #2a1a4a;
+      padding:20px;
+      overflow-y:auto;
+      flex-shrink:0;
+    }
+    .sidebar-header {
+      font-family:'Orbitron',sans-serif;
+      color:#a855f7;
+      font-size:1.8rem;
+      margin-bottom:20px;
+      text-shadow:0 0 8px #a855f7;
+    }
+    .new-chat {
+      background:#2a1a4a;
+      border:1px solid #7e22ce;
+      color:white;
+      padding:12px;
+      border-radius:12px;
+      text-align:center;
+      cursor:pointer;
+      margin-bottom:20px;
+    }
+    .chat-list {
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .chat-item {
+      padding:10px 14px;
+      background:#1a1a24;
+      border-radius:10px;
+      cursor:pointer;
+      transition:background 0.2s;
+    }
+    .chat-item:hover { background:#2a1a4a; }
+    .main {
+      flex:1;
+      display:flex;
+      flex-direction:column;
+    }
+    .chat-header {
+      padding:16px 24px;
+      background:#111118;
+      border-bottom:1px solid #2a1a4a;
+      font-size:1.4rem;
+      color:#c084fc;
+    }
+    .chat-messages {
+      flex:1;
+      padding:24px;
+      overflow-y:auto;
+      display:flex;
+      flex-direction:column;
+      gap:20px;
+    }
+    .message {
+      max-width:80%;
+      padding:12px 18px;
+      border-radius:18px;
+      display:flex;
+      align-items:flex-start;
+      gap:12px;
+    }
+    .ai-message {
+      align-self:flex-start;
+      background:#2a1a4a;
+      border-radius:18px 18px 18px 4px;
+    }
+    .user-message {
+      align-self:flex-end;
+      background:#3b82f6;
+      border-radius:18px 18px 4px 18px;
+      flex-direction:row-reverse;
+    }
+    .avatar {
+      width:36px;
+      height:36px;
+      border-radius:50%;
+      background:#a855f7;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:bold;
+      font-size:1.1rem;
+      flex-shrink:0;
+    }
+    .message-content {
+      white-space:pre-wrap;
+    }
+    .input-bar {
+      padding:16px 24px;
+      background:#111118;
+      border-top:1px solid #2a1a4a;
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    textarea {
+      flex:1;
+      min-height:52px;
+      max-height:160px;
+      padding:14px 18px;
+      background:#1a1a24;
+      border:1px solid #4a2a6e;
+      border-radius:16px;
+      color:white;
+      font-size:1.05rem;
+      resize:none;
+      outline:none;
+    }
+    .input-icon {
+      width:40px;
+      height:40px;
+      background:#2a1a4a;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      font-size:1.3rem;
+      transition:background 0.2s;
+    }
+    .input-icon:hover { background:#4a2a6e; }
+    .send-btn {
+      padding:0 24px;
+      background:#a855f7;
+      border:none;
+      border-radius:16px;
+      color:white;
+      font-weight:bold;
+      cursor:pointer;
+    }
+    .blinking-cursor {
+      color:#c084fc;
+      animation:blink 0.8s infinite;
+    }
     @keyframes blink { 50% { opacity:0; } }
     .hidden { display:none !important; }
-    footer { text-align:center; margin-top:60px; color:#666; font-size:0.9rem; }
+    .access-screen {
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,0.9);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:1000;
+    }
+    .access-card {
+      background:#1a1a24;
+      border:2px solid #a855f7;
+      border-radius:20px;
+      padding:50px 40px;
+      max-width:420px;
+      width:90%;
+      text-align:center;
+    }
+    .error { color:#ff6b6b; margin-top:16px; }
   </style>
 </head>
 <body>
@@ -44,60 +184,73 @@
   <div class="access-screen" id="accessScreen">
     <div class="access-card">
       <h1 class="glow">ElXora</h1>
-      <p>AI-Powered Luau Scripting for Roblox Studio</p>
+      <p>Enter code to access</p>
       <form id="accessForm">
-        <input type="text" id="accessCode" placeholder="Enter access code" required />
-        <button type="submit" class="btn-neon">Unlock</button>
+        <input type="text" id="accessCode" placeholder="beta2026" required />
+        <button type="submit" class="btn-neon" style="margin-top:20px;width:100%;">Unlock</button>
       </form>
       <p id="errorMsg" class="error"></p>
     </div>
   </div>
 
-  <div class="main-content hidden" id="mainContent">
-    <header>
-      <h1 class="glow">ElXora</h1>
-      <p>Ask anything Roblox — I'll script it fast & Grok-style</p>
-    </header>
-
-    <div class="prompt-box">
-      <textarea id="prompt" placeholder="Yo, make a script for... (tycoon dropper, admin commands, obby system, whatever)"></textarea>
-      <button id="generateBtn" class="btn-neon">Send</button>
+  <div class="sidebar">
+    <div class="sidebar-header">ElXora</div>
+    <div class="new-chat">+ New Chat</div>
+    <div class="chat-list">
+      <div class="chat-item">Global Music Script</div>
+      <div class="chat-item">Tycoon Dropper v2</div>
+      <div class="chat-item">Obby Checkpoints</div>
     </div>
+  </div>
 
-    <div class="chat-container" id="chatContainer"></div>
+  <div class="main">
+    <div class="chat-header">Chat with ElXora</div>
+    <div class="chat-messages" id="chatContainer"></div>
 
-    <footer>Powered by Groq • ElXora © 2026</footer>
+    <div class="input-bar">
+      <div class="input-icon" title="Attach file/image">📎</div>
+      <div class="input-icon" title="Voice mode">🎤</div>
+      <textarea id="prompt" placeholder="Ask me anything Roblox..." rows="1"></textarea>
+      <button id="generateBtn" class="send-btn">Send</button>
+    </div>
   </div>
 
   <script>
-    // FIXED ACCESS GATE SCRIPT
+    // Access gate – FIXED so it unlocks properly
     const accessScreen = document.getElementById('accessScreen');
-    const mainContent = document.getElementById('mainContent');
+    const mainContent = document.querySelector('.main'); // or use id if you add one
     const form = document.getElementById('accessForm');
     const errorMsg = document.getElementById('errorMsg');
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      const code = document.getElementById('accessCode').value.trim().toLowerCase(); // case-insensitive
+      const code = document.getElementById('accessCode').value.trim().toLowerCase();
 
       if (code === 'beta2026') {
         localStorage.setItem('elxora_access', 'ok');
-        accessScreen.classList.add('hidden');          // Hide login screen
-        mainContent.classList.remove('hidden');        // Show main chat area
-        errorMsg.textContent = '';                     // Clear error
+        accessScreen.classList.add('hidden');           // Hide login
+        mainContent.style.display = 'flex';             // Show main area
+        errorMsg.textContent = '';
       } else {
         errorMsg.textContent = 'Wrong code – try again';
       }
     });
 
-    // If already unlocked in past (persists after refresh/close)
+    // Auto-unlock if previously successful
     if (localStorage.getItem('elxora_access') === 'ok') {
       accessScreen.classList.add('hidden');
-      mainContent.classList.remove('hidden');
+      mainContent.style.display = 'flex';
     }
 
-    // Fast typing animation
-    function typeWriter(element, text, speed = 10, callback) {
+    // Auto-resize textarea
+    const textarea = document.getElementById('prompt');
+    textarea.addEventListener('input', () => {
+      textarea.style.height = 'auto';
+      textarea.style.height = textarea.scrollHeight + 'px';
+    });
+
+    // Typing animation
+    function typeWriter(element, text, callback) {
       let i = 0;
       element.innerHTML = '';
       const cursor = document.createElement('span');
@@ -109,37 +262,42 @@
         if (i < text.length) {
           element.insertBefore(document.createTextNode(text.charAt(i)), cursor);
           i++;
-          setTimeout(type, speed + Math.random() * 6);
+          setTimeout(type, 8 + Math.random() * 6);
         } else {
           cursor.remove();
-          element.querySelectorAll('code').forEach(Prism.highlightElement);
+          element.querySelectorAll('pre code').forEach(Prism.highlightElement);
           if (callback) callback();
         }
       }
       type();
     }
 
-    // Send prompt (your original chat logic)
+    // Send message
     document.getElementById('generateBtn').addEventListener('click', async () => {
-      const prompt = document.getElementById('prompt').value.trim();
-      if (!prompt) return alert('Say something bro!');
+      const prompt = textarea.value.trim();
+      if (!prompt) return;
 
       const chat = document.getElementById('chatContainer');
 
-      // User bubble (right, blue)
-      const userBubble = document.createElement('div');
-      userBubble.className = 'message user-message';
-      userBubble.innerHTML = `<div class="avatar">You</div><div class="message-content">${prompt}</div>`;
-      chat.appendChild(userBubble);
+      // User message
+      const userMsg = document.createElement('div');
+      userMsg.className = 'message user-message';
+      userMsg.innerHTML = `<div class="avatar">You</div><div class="message-content">${prompt}</div>`;
+      chat.appendChild(userMsg);
 
-      // AI bubble (left, purple)
-      const aiBubble = document.createElement('div');
-      aiBubble.className = 'message ai-message';
-      aiBubble.innerHTML = `<div class="avatar">E</div><div class="message-content" id="aiReply"></div>`;
-      chat.appendChild(aiBubble);
+      // AI message placeholder
+      const aiMsg = document.createElement('div');
+      aiMsg.className = 'message ai-message';
+      aiMsg.innerHTML = `<div class="avatar">E</div><div class="message-content" id="currentReply"></div>`;
+      chat.appendChild(aiMsg);
 
-      const aiReply = document.getElementById('aiReply');
+      const replyEl = document.getElementById('currentReply');
 
+      textarea.value = '';
+      textarea.style.height = 'auto';
+      chat.scrollTop = chat.scrollHeight;
+
+      // Groq API call
       const GROQ_API_KEY = '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';
 
       try {
@@ -152,27 +310,39 @@
           body: JSON.stringify({
             model: 'llama-3.3-70b-versatile',
             messages: [
-              {role: 'system', content: 'You are Grok as ElXora — fast Roblox Luau scripter. Respond quick, helpful, witty. Clean code with -- comments.'},
+              {role: 'system', content: 'You are Grok as ElXora — fast Roblox Luau scripter. Respond quick, helpful, witty. Always wrap any Luau code in ```lua ... ``` so it can be highlighted properly.'},
               {role: 'user', content: prompt}
             ],
             temperature: 0.7,
-            max_tokens: 2000
+            max_tokens: 2200
           })
         });
 
         if (!res.ok) throw new Error('Groq error');
 
         const data = await res.json();
-        const reply = data.choices[0].message.content.trim();
+        let reply = data.choices[0].message.content.trim();
 
-        typeWriter(aiReply, reply);
+        if ((reply.includes('function') || reply.includes('local ') || reply.includes('game:GetService')) && !reply.includes('```lua')) {
+          reply = '```lua\n' + reply + '\n```';
+        }
+
+        typeWriter(replyEl, reply, () => {
+          chat.scrollTop = chat.scrollHeight;
+        });
 
       } catch (e) {
-        typeWriter(aiReply, `-- Error: ${e.message}\nTry again or check key.`);
+        typeWriter(replyEl, `-- Error: ${e.message}`);
+        chat.scrollTop = chat.scrollHeight;
       }
+    });
 
-      document.getElementById('prompt').value = '';
-      chat.scrollTop = chat.scrollHeight;
+    // Enter to send
+    textarea.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        document.getElementById('generateBtn').click();
+      }
     });
   </script>
 </body>
