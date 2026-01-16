@@ -6,7 +6,7 @@
   <title>ElXora - AI Lua Scripter for Roblox</title>
   <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet"/>
-  <!-- For syntax highlighting in generated code (optional but nice) -->
+  <!-- Prism for code highlighting -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
 </head>
@@ -37,7 +37,8 @@
 
       <div class="output hidden" id="output">
         <h2>Generated Luau Code</h2>
-        <pre><code class="language-lua" id="codeOutput">-- Your AI-generated code will appear here...</code></pre>
+        <pre><code class="language-lua" id="codeOutput"></code></pre>
+        <div id="cursor" class="blinking-cursor">|</div> <!-- Blinking cursor during typing -->
         <button id="copyBtn" class="copy-btn">Copy Code</button>
       </div>
     </main>
@@ -48,12 +49,12 @@
   </div>
 
   <script>
+    // Access gate (unchanged)
     const accessScreen = document.getElementById('accessScreen');
     const mainContent = document.getElementById('mainContent');
     const form = document.getElementById('accessForm');
     const errorMsg = document.getElementById('errorMsg');
 
-    // Simple access gate (change 'beta2026' to your preferred code)
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const code = document.getElementById('accessCode').value.trim();
@@ -66,30 +67,61 @@
       }
     });
 
-    // Check if already accessed
     if (localStorage.getItem('elxora_access') === 'ok') {
       accessScreen.classList.add('hidden');
       mainContent.classList.remove('hidden');
     }
 
-    // Placeholder generate button (add real AI fetch later)
+    // ── Typing Animation Function (Grok/ChatGPT style) ──
+    function typeWriter(element, text, speed = 30, callback) {
+      let i = 0;
+      element.textContent = ''; // Clear previous content
+      const cursor = document.getElementById('cursor');
+      cursor.style.display = 'inline'; // Show cursor while typing
+
+      function type() {
+        if (i < text.length) {
+          element.textContent += text.charAt(i);
+          i++;
+          // Randomize speed a bit for natural feel (like human typing)
+          const randomDelay = speed + Math.random() * 40 - 20;
+          setTimeout(type, randomDelay);
+        } else {
+          cursor.style.display = 'none'; // Hide cursor when done
+          Prism.highlightElement(element); // Highlight after typing finishes
+          if (callback) callback();
+        }
+      }
+      type();
+    }
+
+    // Generate button
     document.getElementById('generateBtn').addEventListener('click', () => {
       const prompt = document.getElementById('prompt').value.trim();
       if (!prompt) return alert('Enter a description first!');
-      
-      // Fake output for now
-      const fakeCode = `-- Example from ElXora AI\nlocal Players = game:GetService("Players")\n\nPlayers.PlayerAdded:Connect(function(player)\n    local leaderstats = Instance.new("Folder")\n    leaderstats.Name = "leaderstats"\n    leaderstats.Parent = player\n    \n    local checkpoints = Instance.new("IntValue")\n    checkpoints.Name = "Checkpoints"\n    checkpoints.Value = 0\n    checkpoints.Parent = leaderstats\nend)`;
-      
-      document.getElementById('codeOutput').textContent = fakeCode;
-      document.getElementById('output').classList.remove('hidden');
-      Prism.highlightAll(); // Highlight code
+
+      const outputDiv = document.getElementById('output');
+      const codeElement = document.getElementById('codeOutput');
+
+      outputDiv.classList.remove('hidden');
+
+      // Fake AI response for now (replace this with real API later)
+      const fakeResponse = `-- ElXora AI generated this for you!\n-- Prompt: ${prompt}\n\nlocal Players = game:GetService("Players")\nlocal ReplicatedStorage = game:GetService("ReplicatedStorage")\n\nPlayers.PlayerAdded:Connect(function(player)\n    local leaderstats = Instance.new("Folder")\n    leaderstats.Name = "leaderstats"\n    leaderstats.Parent = player\n    \n    local checkpoints = Instance.new("IntValue")\n    checkpoints.Name = "Checkpoints"\n    checkpoints.Value = 0\n    checkpoints.Parent = leaderstats\n    \n    print(player.Name .. " joined! Checkpoints initialized.")\nend)\n\n-- Add more features like respawn at checkpoint, sounds, etc.`;
+
+      // Start typing animation
+      typeWriter(codeElement, fakeResponse, 25, () => {
+        // Optional: enable copy button only after typing done
+        document.getElementById('copyBtn').disabled = false;
+      });
     });
 
     // Copy button
     document.getElementById('copyBtn').addEventListener('click', () => {
       const code = document.getElementById('codeOutput').textContent;
       navigator.clipboard.writeText(code).then(() => {
-        alert('Code copied!');
+        alert('Code copied to clipboard!');
+      }).catch(err => {
+        alert('Failed to copy: ' + err);
       });
     });
   </script>
