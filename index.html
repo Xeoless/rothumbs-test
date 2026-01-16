@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>My RoThumbs - AI Roblox Thumbnail Generator</title>
   
-  <!-- Step 1: Load Puter.js v2 library (required for puter.ai.txt2img) -->
+  <!-- Puter.js library (Step 1 - this enables puter.ai) -->
   <script src="https://js.puter.com/v2/"></script>
   
-  <!-- Google Fonts for nice look -->
+  <!-- Fonts for clean look -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   
   <style>
@@ -34,7 +34,6 @@
       color: #00ffff;
       font-weight: 700;
       text-shadow: 0 0 15px #00ffff80;
-      margin-bottom: 10px;
     }
     .subtitle {
       text-align: center;
@@ -70,19 +69,15 @@
       position: relative;
       overflow: hidden;
     }
-    button:hover {
+    button:hover:not(:disabled) {
       transform: scale(1.05);
       box-shadow: 0 0 40px rgba(255, 51, 102, 0.9);
     }
     button:disabled {
       opacity: 0.6;
       cursor: not-allowed;
-      transform: none;
     }
-    /* Loading spinner on button */
-    button.loading {
-      pointer-events: none;
-    }
+    /* Spinner when loading */
     button.loading::after {
       content: "";
       position: absolute;
@@ -112,7 +107,7 @@
       box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
       border: 2px solid rgba(0, 255, 255, 0.3);
       display: block;
-      margin: 20px auto;
+      margin: 0 auto;
     }
     .tip {
       font-size: 14px;
@@ -125,9 +120,9 @@
 <body>
   <div class="container">
     <h1>My RoThumbs AI</h1>
-    <p class="subtitle">Generate epic Roblox thumbnails in seconds – powered by FLUX.1-schnell</p>
+    <p class="subtitle">Create viral Roblox thumbnails fast – no keys needed!</p>
     
-    <textarea id="prompt" placeholder="Describe your Roblox thumbnail... e.g. epic battle avatar with sword, fire explosion background, text 'WIN OR DIE'"></textarea>
+    <textarea id="prompt" placeholder="Describe your thumbnail... (e.g. epic Roblox obby avatar jumping lava, neon text 'INSANE OBBY', explosive background)"></textarea>
     
     <button id="generateBtn">Generate Thumbnail</button>
     
@@ -135,7 +130,7 @@
     
     <div id="result"></div>
     
-    <p class="tip">Tip: Be descriptive for best results! Right-click image to save.</p>
+    <p class="tip">Be detailed for best results! Right-click to save the image.</p>
   </div>
 
   <script>
@@ -144,46 +139,42 @@
     const status = document.getElementById('status');
     const resultDiv = document.getElementById('result');
 
-    // Auto-focus prompt
-    if (promptInput) promptInput.focus();
+    promptInput.focus();
 
     generateBtn.addEventListener('click', async () => {
       const userPrompt = promptInput.value.trim();
       if (!userPrompt) {
-        alert("Enter a description first!");
+        alert("Please enter a description!");
         return;
       }
 
       generateBtn.disabled = true;
-      generateBtn.classList.add('loading'); // Show spinner
-      status.textContent = "Generating... (Flux.1-schnell is working, 5-20 sec)";
-      
-      // Clear old image
-      resultDiv.innerHTML = '';
+      generateBtn.classList.add('loading');
+      status.textContent = "Generating... (usually 5-20 seconds with FLUX.1-schnell)";
+      resultDiv.innerHTML = '';  // Clear previous image
 
-      // Enhanced prompt for better Flux results
-      const fullPrompt = `High-converting viral Roblox thumbnail in 2026 style, ${userPrompt}, dramatic cinematic lighting, intense dynamic Roblox avatar pose, glowing neon effects and particles, bold outlined glowing text overlay, explosive colorful background, ultra detailed, high contrast vibrant colors, trending YouTube clickbait composition, perfect 16:9 aspect ratio, professional GFX`;
+      const fullPrompt = `Professional high-converting Roblox thumbnail, ${userPrompt}, cinematic dramatic lighting, intense action pose Roblox avatar, glowing neon effects, bold text overlay with outline, viral explosive background, ultra detailed, vibrant high contrast colors, 16:9 aspect ratio, trending style`;
 
       try {
-        // Generate with Puter.js + FLUX.1-schnell
+        // Generate image – returns an <img> element
         const generatedImg = await puter.ai.txt2img(fullPrompt, {
-          model: "black-forest-labs/FLUX.1-schnell"
+          model: "black-forest-labs/FLUX.1-schnell"  // Fast Flux model
         });
 
-        // Customize image
-        generatedImg.id = 'generated-img';
+        // Style the image
+        generatedImg.style.maxWidth = '100%';
+        generatedImg.style.borderRadius = '16px';
+        generatedImg.style.boxShadow = '0 0 30px rgba(0, 255, 255, 0.4)';
         generatedImg.alt = 'Generated Roblox Thumbnail';
 
-        // Add to page
         resultDiv.appendChild(generatedImg);
-
-        status.textContent = "Done! Right-click image to save 🔥";
+        status.textContent = "Thumbnail ready! Right-click to save it 🚀";
       } catch (err) {
-        status.textContent = "Error: " + (err.message || "Try again or check console (F12)");
-        console.error("Generation error:", err);
+        status.textContent = `Error: ${err.message || 'Failed to generate – try again or check console (F12)'}`;
+        console.error('Puter AI error:', err);
       } finally {
         generateBtn.disabled = false;
-        generateBtn.classList.remove('loading'); // Hide spinner
+        generateBtn.classList.remove('loading');
       }
     });
   </script>
