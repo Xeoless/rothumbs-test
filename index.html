@@ -10,6 +10,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
 </head>
 <body>
+
+  <!-- Access / Login Screen -->
   <div class="access-screen" id="accessScreen">
     <div class="access-card">
       <h1 class="glow">ElXora</h1>
@@ -22,33 +24,27 @@
     </div>
   </div>
 
+  <!-- Main Chat Interface -->
   <div class="main-content hidden" id="mainContent">
     <header>
       <h1 class="glow">ElXora</h1>
-      <p>Ask me anything Roblox — I'll script it Grok-style</p>
+      <p>Ask anything Roblox — I'll script it fast & Grok-style</p>
     </header>
 
-    <main>
-      <div class="prompt-box">
-        <textarea id="prompt" placeholder="Yo, script me... (e.g. a flying car tool, tycoon with auto-upgrades, admin panel with kicks/bans)"></textarea>
-        <button id="generateBtn" class="btn-neon">Generate Script</button>
-      </div>
+    <div class="prompt-box">
+      <textarea id="prompt" placeholder="Yo, make a script for... (tycoon dropper, admin commands, obby system, whatever)"></textarea>
+      <button id="generateBtn" class="btn-neon">Send</button>
+    </div>
 
-      <div class="output hidden" id="output">
-        <h2>ElXora (Grok Mode)</h2>
-        <pre><code class="language-lua" id="codeOutput"></code></pre>
-        <div id="cursor" class="blinking-cursor">|</div>
-        <button id="copyBtn" class="copy-btn">Copy Code</button>
-      </div>
-    </main>
+    <div class="chat-container" id="chatContainer"></div>
 
-    <footer>
-      <p>Powered by Groq • ElXora © 2026 • Kevin's AI Tool</p>
+    <footer style="text-align:center; margin-top:60px; color:#666; font-size:0.9rem;">
+      Powered by Groq • ElXora © 2026
     </footer>
   </div>
 
   <script>
-    // Access gate
+    // Access gate logic
     const accessScreen = document.getElementById('accessScreen');
     const mainContent = document.getElementById('mainContent');
     const form = document.getElementById('accessForm');
@@ -71,83 +67,93 @@
       mainContent.classList.remove('hidden');
     }
 
-    // Typing animation (natural feel)
-    function typeWriter(element, text, speed = 22, callback) {
+    // Faster typing animation (~10-15ms per char)
+    function typeWriter(element, text, speed = 12, callback) {
       let i = 0;
-      element.textContent = '';
-      const cursor = document.getElementById('cursor');
-      cursor.style.display = 'inline';
+      element.innerHTML = ''; // Clear content
+      const cursor = document.createElement('span');
+      cursor.className = 'blinking-cursor';
+      cursor.textContent = '|';
+      element.appendChild(cursor);
 
       function type() {
         if (i < text.length) {
-          element.textContent += text.charAt(i);
+          element.insertBefore(document.createTextNode(text.charAt(i)), cursor);
           i++;
-          const randomDelay = speed + Math.random() * 30 - 10;
-          setTimeout(type, randomDelay);
+          setTimeout(type, speed + Math.random() * 8); // slight variation for natural feel
         } else {
-          cursor.style.display = 'none';
-          Prism.highlightElement(element);
+          cursor.remove();
+          // Highlight any <code> blocks inside if present
+          element.querySelectorAll('code').forEach(Prism.highlightElement);
           if (callback) callback();
         }
       }
       type();
     }
 
-    // Generate with real Groq API (your key here)
+    // Generate AI response
     document.getElementById('generateBtn').addEventListener('click', async () => {
       const prompt = document.getElementById('prompt').value.trim();
-      if (!prompt) return alert('Drop your script idea, bro!');
+      if (!prompt) return alert('Say something bro!');
 
-      const outputDiv = document.getElementById('output');
-      const codeElement = document.getElementById('codeOutput');
-      outputDiv.classList.remove('hidden');
+      const chat = document.getElementById('chatContainer');
 
-      // PASTE YOUR KEY HERE ↓↓↓ (keep it secret!)
+      // User message bubble (simple right-side feel – you can style further)
+      const userBubble = document.createElement('div');
+      userBubble.className = 'message user-message';
+      userBubble.style.alignSelf = 'flex-end';
+      userBubble.style.background = 'linear-gradient(135deg, #3b82f6, #2563eb)';
+      userBubble.innerHTML = `<div class="message-content">${prompt}</div>`;
+      chat.appendChild(userBubble);
+
+      // AI response bubble
+      const aiBubble = document.createElement('div');
+      aiBubble.className = 'message ai-message';
+      aiBubble.innerHTML = `
+        <div class="avatar">E</div>
+        <div class="message-content" id="tempAiContent"></div>
+      `;
+      chat.appendChild(aiBubble);
+
+      const aiContent = document.getElementById('tempAiContent');
+
+      // Your Groq API key
       const GROQ_API_KEY = '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';
 
       try {
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${GROQ_API_KEY}`
           },
           body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',  // Fast, smart, good at code
+            model: 'llama-3.3-70b-versatile',
             messages: [
               {
                 role: 'system',
-                content: `You are Grok 3 from xAI, but dialed in as ElXora — the chill, no-BS Roblox Luau scripting expert. 
-Respond exactly like Grok: helpful, straight-up, a touch sarcastic/funny if it fits, zero fluff.
-Always output clean Luau code with -- comments, best practices (WaitForChild, task library, no deprecated stuff).
-Structure: Short intro like "Alright Kevin, here's your [thing]:", then the code block, then tips/fixes if needed.
-If unclear, ask chill questions back.`
+                content: 'You are Grok — fast, helpful Roblox Luau expert as ElXora. Respond quick, chill, witty if fits. Give clean code with -- comments.'
               },
               { role: 'user', content: prompt }
             ],
-            temperature: 0.75,
-            max_tokens: 2500,
-            top_p: 0.95
+            temperature: 0.7,
+            max_tokens: 2000
           })
         });
 
-        if (!response.ok) throw new Error(`Groq error: ${response.status} - ${await response.text()}`);
+        if (!res.ok) throw new Error(`Groq error: ${res.status}`);
 
-        const data = await response.json();
-        const aiReply = data.choices[0].message.content.trim();
+        const data = await res.json();
+        const reply = data.choices[0].message.content.trim();
 
-        typeWriter(codeElement, aiReply);
+        typeWriter(aiContent, reply, 10); // fast typing
 
-      } catch (err) {
-        typeWriter(codeElement, `-- Damn, something broke: ${err.message}\n\nDouble-check your key or try again in a bit.`);
-        console.error(err);
+      } catch (e) {
+        typeWriter(aiContent, `-- Error: ${e.message}\nCheck key or try again later.`);
       }
-    });
 
-    // Copy
-    document.getElementById('copyBtn').addEventListener('click', () => {
-      const text = document.getElementById('codeOutput').textContent;
-      navigator.clipboard.writeText(text).then(() => alert('Copied — slap it in Studio!')).catch(() => alert('Copy failed, highlight manually.'));
+      document.getElementById('prompt').value = ''; // clear input
+      chat.scrollTop = chat.scrollHeight; // auto-scroll to bottom
     });
   </script>
 </body>
