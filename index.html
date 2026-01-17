@@ -100,6 +100,7 @@
       left:0;
       right:0;
       z-index:5;
+      cursor:pointer;
     }
     .user-avatar {
       width:clamp(40px, 6vw, 52px);
@@ -127,7 +128,11 @@
       margin-bottom:1.2rem;
       transition:background 0.2s;
     }
-    .new-chat:hover { background:var(--purple-dark); }
+    .new-chat.disabled {
+      background:#ccc;
+      cursor:not-allowed;
+    }
+    .new-chat:hover:not(.disabled) { background:var(--purple-dark); }
     .chat-list {
       display:flex;
       flex-direction:column;
@@ -136,18 +141,28 @@
       overflow-y:auto;
     }
     .chat-item {
-      padding:0.8rem 1rem;
+      padding:0.6rem 0.8rem;
       background:#f1f5f9;
       border-radius:0.7rem;
       cursor:pointer;
       transition:background 0.2s;
       font-size:0.95rem;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
     }
     .chat-item:hover { background:#e2e8f0; }
     .chat-item.active { background:var(--purple-light); color:white; }
+    .chat-actions {
+      display:flex;
+      gap:0.4rem;
+    }
+    .chat-action {
+      cursor:pointer;
+      font-size:0.9rem;
+      opacity:0.7;
+    }
+    .chat-action:hover { opacity:1; }
     .main {
       flex:1;
       display:flex;
@@ -276,16 +291,33 @@
       border-radius:0.8rem;
       margin-top:0.5rem;
     }
-    pre {
-      background:#f8f9fa;
-      padding:1rem;
-      border-radius:0.8rem;
-      overflow-x:auto;
-      margin:0.8rem 0;
-      border:1px solid var(--border);
+    .logout-overlay {
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,0.5);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:1001;
     }
-    code {
-      font-family: 'Courier New', Courier, monospace;
+    .logout-card {
+      background:white;
+      border-radius:1rem;
+      padding:2rem;
+      text-align:center;
+      box-shadow:0 10px 30px rgba(0,0,0,0.2);
+      max-width:300px;
+      width:90%;
+    }
+    .logout-btn {
+      background:#e53e3e;
+      color:white;
+      padding:0.8rem 1.5rem;
+      border:none;
+      border-radius:0.8rem;
+      cursor:pointer;
+      margin-top:1rem;
+      width:100%;
     }
   </style>
 </head>
@@ -305,6 +337,16 @@
       <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="signin_with" data-shape="pill" data-logo_alignment="left"></div>
 
       <p id="errorMsg" class="error"></p>
+    </div>
+  </div>
+
+  <!-- Logout Overlay -->
+  <div class="logout-overlay" id="logoutOverlay">
+    <div class="logout-card">
+      <h2>Log out?</h2>
+      <p>You will be signed out of ElXora.</p>
+      <button class="logout-btn" id="confirmLogout">Log out</button>
+      <button style="margin-top:0.8rem;" onclick="document.getElementById('logoutOverlay').style.display='none'">Cancel</button>
     </div>
   </div>
 
@@ -349,6 +391,8 @@
     const newChatBtn = document.getElementById('newChatBtn');
     const generateBtn = document.getElementById('generateBtn');
     const stopBtn = document.getElementById('stopBtn');
+    const userProfile = document.getElementById('userProfile');
+    const logoutOverlay = document.getElementById('logoutOverlay');
 
     // Google Login Handler
     function handleGoogleLogin(response) {
@@ -377,7 +421,6 @@
       document.getElementById('userAvatar').src = payload.picture || 'https://via.placeholder.com/52';
       document.getElementById('userName').textContent = payload.name || 'User';
 
-      // Load chats for this user
       const userChatsKey = `elxora_chats_${currentUserEmail}`;
       chats = JSON.parse(localStorage.getItem(userChatsKey)) || [{ id: Date.now(), title: 'New Chat', messages: [] }];
       currentChatId = chats[0].id;
@@ -385,15 +428,57 @@
       loadChat(currentChatId);
     }
 
+    // Profile click → show logout UI
+    userProfile.addEventListener('click', () => {
+      logoutOverlay.style.display = 'flex';
+    });
+
+    // Confirm logout
+    document.getElementById('confirmLogout').addEventListener('click', () => {
+      localStorage.removeItem("google_user");
+      logoutOverlay.style.display = 'none';
+      document.getElementById('accessScreen').style.display = 'flex';
+      document.getElementById('mainContent').style.display = 'none';
+      document.getElementById('sidebar').style.display = 'none';
+      document.getElementById('userProfile').style.display = 'none';
+    });
+
     function renderChatList() {
       chatListEl.innerHTML = '';
       chats.forEach(chat => {
         const item = document.createElement('div');
         item.className = 'chat-item' + (chat.id === currentChatId ? ' active' : '');
-        item.textContent = chat.title || 'New Chat';
+        item.innerHTML = `
+          <span>${chat.title || 'New Chat'}</span>
+          <div class="chat-actions">
+            <span class="chat-action" onclick="event.stopPropagation(); renameChat('${chat.id}')">✏️</span>
+            <span class="chat-action" onclick="event.stopPropagation(); deleteChat('${chat.id}')">🗑️</span>
+          </div>
+        `;
         item.onclick = () => loadChat(chat.id);
         chatListEl.appendChild(item);
       });
+
+      // Disable new chat if max reached
+      if (chats.length >= 20) {
+        newChatBtn.classList.add('disabled');
+        newChatBtn.textContent = 'Max chats (20)';
+        newChatBtn.onclick = null;
+      } else {
+        newChatBtn.classList.remove('disabled');
+        newChatBtn.textContent = '+ New Chat';
+        newChatBtn.onclick = createNewChat;
+      }
+    }
+
+    function createNewChat() {
+      if (chats.length >= 20) return;
+      const newId = Date.now();
+      chats.push({ id: newId, title: 'New Chat', messages: [] });
+      currentChatId = newId;
+      saveChats();
+      renderChatList();
+      chatContainer.innerHTML = '';
     }
 
     function saveChats() {
@@ -405,7 +490,7 @@
     function loadChat(id) {
       currentChatId = id;
       renderChatList();
-      chatContainer.innerHTML = '';
+      chatContainer.innerHTML = ''; // clear previous messages
       const chat = chats.find(c => c.id === id);
       if (chat && chat.messages.length) {
         chat.messages.forEach(msg => addMessage(msg.role, msg.content, false));
@@ -417,6 +502,7 @@
       const chat = chats.find(c => c.id === currentChatId);
       if (!chat) return;
 
+      // Always create a new bubble
       const bubble = document.createElement('div');
       bubble.className = `message ${role === 'user' ? 'user-message' : 'ai-message'}`;
       bubble.innerHTML = `
@@ -434,7 +520,7 @@
 
       chat.messages.push({ role, content });
 
-      // Auto-set title from first user message if not set
+      // Auto-set title from first user message
       if (role === 'user' && chat.title === 'New Chat' && chat.messages.length === 1) {
         chat.title = content.slice(0, 35) + (content.length > 35 ? '...' : '');
         saveChats();
@@ -466,15 +552,30 @@
       type();
     }
 
-    // New chat
-    newChatBtn.onclick = () => {
-      const newId = Date.now();
-      chats.push({ id: newId, title: 'New Chat', messages: [] });
-      currentChatId = newId;
+    // Rename chat
+    function renameChat(id) {
+      const chat = chats.find(c => c.id === id);
+      if (!chat) return;
+      const newTitle = prompt("New chat name:", chat.title);
+      if (newTitle && newTitle.trim()) {
+        chat.title = newTitle.trim();
+        saveChats();
+        renderChatList();
+      }
+    }
+
+    // Delete chat
+    function deleteChat(id) {
+      if (!confirm("Delete this chat?")) return;
+      chats = chats.filter(c => c.id !== id);
+      if (currentChatId === id) {
+        currentChatId = chats.length > 0 ? chats[0].id : null;
+        if (currentChatId) loadChat(currentChatId);
+        else chatContainer.innerHTML = '';
+      }
       saveChats();
       renderChatList();
-      chatContainer.innerHTML = '';
-    };
+    }
 
     // Auto-resize textarea
     const textarea = document.getElementById('prompt');
@@ -483,7 +584,7 @@
       textarea.style.height = textarea.scrollHeight + 'px';
     });
 
-    // Real Groq AI – full conversation history sent
+    // Real Groq AI – full history
     document.getElementById('generateBtn').addEventListener('click', async () => {
       const prompt = textarea.value.trim();
       if (!prompt) return;
@@ -496,7 +597,6 @@
       const chat = chats.find(c => c.id === currentChatId);
       if (!chat) return;
 
-      // Show AI typing bubble
       const tempMsg = document.createElement('div');
       tempMsg.className = 'message ai-message';
       tempMsg.innerHTML = `<div class="avatar">E</div><div class="message-content" id="currentReply"></div>`;
@@ -505,7 +605,6 @@
       const replyEl = document.getElementById('currentReply');
       chatContainer.scrollTop = chatContainer.scrollHeight;
 
-      // Prepare full conversation history for context
       const messagesForApi = chat.messages.map(msg => ({
         role: msg.role,
         content: msg.content
