@@ -253,7 +253,7 @@
       transition:background 0.2s;
     }
     .input-icon:hover { background:#e2e8f0; }
-    .send-btn {
+    .send-btn, .stop-btn {
       padding:0 1.8rem;
       background:var(--purple);
       border:none;
@@ -264,7 +264,7 @@
       font-size:1rem;
       transition:background 0.2s;
     }
-    .send-btn:hover { background:var(--purple-dark); }
+    .send-btn:hover, .stop-btn:hover { background:var(--purple-dark); }
     .blinking-cursor {
       color:var(--purple);
       animation:blink 0.8s infinite;
@@ -274,6 +274,17 @@
       max-width:200px;
       border-radius:0.8rem;
       margin-top:0.5rem;
+    }
+    pre {
+      background:#f8f9fa;
+      padding:1rem;
+      border-radius:0.8rem;
+      overflow-x:auto;
+      margin:0.8rem 0;
+      border:1px solid var(--border);
+    }
+    code {
+      font-family: 'Courier New', Courier, monospace;
     }
   </style>
 </head>
@@ -318,6 +329,7 @@
       <div class="input-icon" id="fileBtn" title="Attach file/image">📎</div>
       <textarea id="prompt" placeholder="Ask me anything Roblox..." rows="1"></textarea>
       <button id="generateBtn" class="send-btn">Send</button>
+      <button id="stopBtn" class="stop-btn" style="display:none;">Stop</button>
     </div>
   </div>
 
@@ -325,14 +337,13 @@
   <input type="file" id="fileInput" accept="image/*" style="display:none;">
 
   <script>
-    // Google Login Handler – just saves user and hides overlay
+    // Google Login Handler – user must refresh manually
     function handleGoogleLogin(response) {
       const jwt = response.credential;
       const payload = JSON.parse(atob(jwt.split('.')[1]));
 
       localStorage.setItem("google_user", JSON.stringify(payload));
 
-      // Hide login overlay
       document.getElementById('accessScreen').classList.add('hidden');
       document.getElementById('accessScreen').style.display = 'none';
 
@@ -387,21 +398,93 @@
       reader.readAsDataURL(file);
     });
 
-    // Send message placeholder (add your Groq fetch here later)
-    document.getElementById('generateBtn').addEventListener('click', () => {
+    // Typing animation
+    function typeWriter(element, text, callback) {
+      let i = 0;
+      element.innerHTML = '';
+      const cursor = document.createElement('span');
+      cursor.className = 'blinking-cursor';
+      cursor.textContent = '|';
+      element.appendChild(cursor);
+
+      function type() {
+        if (i < text.length) {
+          element.insertBefore(document.createTextNode(text.charAt(i)), cursor);
+          i++;
+          setTimeout(type, 8 + Math.random() * 6);
+        } else {
+          cursor.remove();
+          element.querySelectorAll('pre code').forEach(Prism.highlightElement);
+          if (callback) callback();
+        }
+      }
+      type();
+    }
+
+    // Real Groq AI logic
+    document.getElementById('generateBtn').addEventListener('click', async () => {
       const prompt = document.getElementById('prompt').value.trim();
       if (!prompt) return;
 
       const chat = document.getElementById('chatContainer');
+
+      // User message
       const userBubble = document.createElement('div');
       userBubble.className = 'message user-message';
       userBubble.innerHTML = `<div class="avatar">You</div><div class="message-content">${prompt}</div>`;
       chat.appendChild(userBubble);
 
+      // AI placeholder
+      const aiBubble = document.createElement('div');
+      aiBubble.className = 'message ai-message';
+      aiBubble.innerHTML = `<div class="avatar">E</div><div class="message-content" id="currentReply"></div>`;
+      chat.appendChild(aiBubble);
+
+      const replyEl = document.getElementById('currentReply');
+
       document.getElementById('prompt').value = '';
       chat.scrollTop = chat.scrollHeight;
 
-      alert('AI response would appear here – add Groq logic');
+      const GROQ_API_KEY = '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';
+
+      try {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${GROQ_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are Grok as ElXora — fast, helpful Roblox Luau scripter. Respond quick, witty, direct. Always use clean code with -- comments. Wrap any Luau code in ```lua ... ``` for highlighting.'
+              },
+              { role: 'user', content: prompt }
+            ],
+            temperature: 0.7,
+            max_tokens: 2200
+          })
+        });
+
+        if (!res.ok) throw new Error('Groq error: ' + res.status);
+
+        const data = await res.json();
+        let reply = data.choices[0].message.content.trim();
+
+        if ((reply.includes('function') || reply.includes('local ') || reply.includes('game:GetService')) && !reply.includes('```lua')) {
+          reply = '```lua\n' + reply + '\n```';
+        }
+
+        typeWriter(replyEl, reply, () => {
+          chat.scrollTop = chatContainer.scrollHeight;
+        });
+
+      } catch (e) {
+        typeWriter(replyEl, `-- Error: ${e.message}\nTry again later or check API key.`);
+        chat.scrollTop = chatContainer.scrollHeight;
+      }
     });
 
     // Enter to send
