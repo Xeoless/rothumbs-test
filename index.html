@@ -253,7 +253,7 @@
       transition:background 0.2s;
     }
     .input-icon:hover { background:#e2e8f0; }
-    .send-btn, .stop-btn {
+    .send-btn {
       padding:0 1.8rem;
       background:var(--purple);
       border:none;
@@ -264,7 +264,7 @@
       font-size:1rem;
       transition:background 0.2s;
     }
-    .send-btn:hover, .stop-btn:hover { background:var(--purple-dark); }
+    .send-btn:hover { background:var(--purple-dark); }
     .blinking-cursor {
       color:var(--purple);
       animation:blink 0.8s infinite;
@@ -275,17 +275,6 @@
       border-radius:0.8rem;
       margin-top:0.5rem;
     }
-    pre {
-      background:#f8f9fa;
-      padding:1rem;
-      border-radius:0.8rem;
-      overflow-x:auto;
-      margin:0.8rem 0;
-      border:1px solid var(--border);
-    }
-    code {
-      font-family: 'Courier New', Courier, monospace;
-    }
   </style>
 </head>
 <body>
@@ -294,7 +283,7 @@
   <div class="access-screen" id="accessScreen">
     <div class="access-card">
       <h1 class="glow">ElXora</h1>
-      <p>Login with Google to continue dont forget to refresh the page after login in⚠</p>
+      <p>Login with Google to continue</p>
 
       <div id="g_id_onload"
            data-client_id="1091074303503-gsgnp618bh4vd2n9d0it9acs4ctujhc4.apps.googleusercontent.com"
@@ -329,7 +318,6 @@
       <div class="input-icon" id="fileBtn" title="Attach file/image">📎</div>
       <textarea id="prompt" placeholder="Ask me anything Roblox..." rows="1"></textarea>
       <button id="generateBtn" class="send-btn">Send</button>
-      <button id="stopBtn" class="stop-btn" style="display:none;">Stop</button>
     </div>
   </div>
 
@@ -337,22 +325,21 @@
   <input type="file" id="fileInput" accept="image/*" style="display:none;">
 
   <script>
-    // Google Login Handler – auto-refresh after sign-in
+    // Google Login Handler – no auto-refresh, user must refresh manually
     function handleGoogleLogin(response) {
       const jwt = response.credential;
       const payload = JSON.parse(atob(jwt.split('.')[1]));
 
       localStorage.setItem("google_user", JSON.stringify(payload));
 
-      // Hide login
+      // Just hide login overlay (but main app stays hidden until refresh)
       document.getElementById('accessScreen').classList.add('hidden');
       document.getElementById('accessScreen').style.display = 'none';
 
-      // Auto-refresh to load app cleanly
-      location.reload();
+      alert("Login successful! Please refresh the page to enter ElXora.");
     }
 
-    // Auto-login check (after refresh)
+    // Auto-login check (only after manual refresh)
     const savedUser = localStorage.getItem("google_user");
     if (savedUser) {
       const payload = JSON.parse(savedUser);
@@ -400,177 +387,21 @@
       reader.readAsDataURL(file);
     });
 
-    // Chat system
-    let chats = JSON.parse(localStorage.getItem('elxora_chats')) || [{ id: Date.now(), title: 'New Chat', messages: [] }];
-    let currentChatId = chats[0].id;
-    let currentTypingTimeout = null;
-    let isGenerating = false;
-
-    const chatListEl = document.getElementById('chatList');
-    const chatContainer = document.getElementById('chatContainer');
-    const newChatBtn = document.getElementById('newChatBtn');
-    const generateBtn = document.getElementById('generateBtn');
-    const stopBtn = document.getElementById('stopBtn');
-
-    function renderChatList() {
-      chatListEl.innerHTML = '';
-      chats.forEach(chat => {
-        const item = document.createElement('div');
-        item.className = 'chat-item' + (chat.id === currentChatId ? ' active' : '');
-        item.textContent = chat.title || 'New Chat';
-        item.onclick = () => loadChat(chat.id);
-        chatListEl.appendChild(item);
-      });
-    }
-
-    function saveChats() {
-      localStorage.setItem('elxora_chats', JSON.stringify(chats));
-    }
-
-    function loadChat(id) {
-      currentChatId = id;
-      renderChatList();
-      chatContainer.innerHTML = '';
-      const chat = chats.find(c => c.id === id);
-      if (chat && chat.messages.length) {
-        chat.messages.forEach(msg => addMessage(msg.role, msg.content, false));
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-      }
-    }
-
-    function addMessage(role, content, animate = true) {
-      const chat = chats.find(c => c.id === currentChatId);
-      if (!chat) return;
-
-      const bubble = document.createElement('div');
-      bubble.className = `message ${role === 'user' ? 'user-message' : 'ai-message'}`;
-      bubble.innerHTML = `
-        <div class="avatar">${role === 'user' ? 'You' : 'E'}</div>
-        <div class="message-content">${content}</div>
-      `;
-      chatContainer.appendChild(bubble);
-
-      if (animate && role === 'assistant') {
-        const contentEl = bubble.querySelector('.message-content');
-        typeWriter(contentEl, content, () => chatContainer.scrollTop = chatContainer.scrollHeight);
-      } else {
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-      }
-
-      chat.messages.push({ role, content });
-      saveChats();
-    }
-
-    function typeWriter(element, text, callback) {
-      let i = 0;
-      element.innerHTML = '';
-      const cursor = document.createElement('span');
-      cursor.className = 'blinking-cursor';
-      cursor.textContent = '|';
-      element.appendChild(cursor);
-
-      function type() {
-        if (i < text.length) {
-          element.insertBefore(document.createTextNode(text.charAt(i)), cursor);
-          i++;
-          currentTypingTimeout = setTimeout(type, 8 + Math.random() * 6);
-        } else {
-          cursor.remove();
-          element.querySelectorAll('pre code').forEach(Prism.highlightElement);
-          isGenerating = false;
-          generateBtn.style.display = 'inline-block';
-          stopBtn.style.display = 'none';
-          if (callback) callback();
-        }
-      }
-      type();
-    }
-
-    // New chat
-    newChatBtn.onclick = () => {
-      const newId = Date.now();
-      chats.push({ id: newId, title: 'New Chat', messages: [] });
-      currentChatId = newId;
-      saveChats();
-      renderChatList();
-      chatContainer.innerHTML = '';
-    };
-
-    // Send / Stop
-    generateBtn.addEventListener('click', async () => {
+    // Send message placeholder (add your Groq fetch here later)
+    document.getElementById('generateBtn').addEventListener('click', () => {
       const prompt = document.getElementById('prompt').value.trim();
       if (!prompt) return;
 
-      addMessage('user', prompt);
+      const chat = document.getElementById('chatContainer');
+      const userBubble = document.createElement('div');
+      userBubble.className = 'message user-message';
+      userBubble.innerHTML = `<div class="avatar">You</div><div class="message-content">${prompt}</div>`;
+      chat.appendChild(userBubble);
 
       document.getElementById('prompt').value = '';
-      isGenerating = true;
-      generateBtn.style.display = 'none';
-      stopBtn.style.display = 'inline-block';
+      chat.scrollTop = chat.scrollHeight;
 
-      const tempMsg = document.createElement('div');
-      tempMsg.className = 'message ai-message';
-      tempMsg.innerHTML = `<div class="avatar">E</div><div class="message-content" id="currentReply"></div>`;
-      chatContainer.appendChild(tempMsg);
-
-      const replyEl = document.getElementById('currentReply');
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-
-      const GROQ_API_KEY = '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';
-
-      try {
-        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${GROQ_API_KEY}`
-          },
-          body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',
-            messages: [
-              {
-                role: 'system',
-                content: 'You are Grok as ElXora — fast, helpful Roblox Luau scripter. Respond quick, witty, direct. Always use clean code with -- comments. Wrap any Luau code in ```lua ... ``` for highlighting.'
-              },
-              { role: 'user', content: prompt }
-            ],
-            temperature: 0.7,
-            max_tokens: 2200
-          })
-        });
-
-        if (!res.ok) throw new Error('Groq error');
-
-        const data = await res.json();
-        let reply = data.choices[0].message.content.trim();
-
-        if ((reply.includes('function') || reply.includes('local ') || reply.includes('game:GetService')) && !reply.includes('```lua')) {
-          reply = '```lua\n' + reply + '\n```';
-        }
-
-        typeWriter(replyEl, reply, () => {
-          chatContainer.scrollTop = chatContainer.scrollHeight;
-          addMessage('assistant', reply, false);
-          tempMsg.remove();
-          isGenerating = false;
-          generateBtn.style.display = 'inline-block';
-          stopBtn.style.display = 'none';
-        });
-
-      } catch (e) {
-        typeWriter(replyEl, `-- Error: ${e.message}\nTry again later.`);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-        isGenerating = false;
-        generateBtn.style.display = 'inline-block';
-        stopBtn.style.display = 'none';
-      }
-    });
-
-    stopBtn.addEventListener('click', () => {
-      if (currentTypingTimeout) clearTimeout(currentTypingTimeout);
-      isGenerating = false;
-      generateBtn.style.display = 'inline-block';
-      stopBtn.style.display = 'none';
+      alert('AI response would appear here – add Groq logic');
     });
 
     // Enter to send
@@ -587,10 +418,6 @@
       textarea.style.height = 'auto';
       textarea.style.height = textarea.scrollHeight + 'px';
     });
-
-    // Load initial chat
-    renderChatList();
-    loadChat(currentChatId);
   </script>
 </body>
 </html>
