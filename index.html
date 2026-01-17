@@ -44,6 +44,7 @@
     .access-screen.hidden {
       opacity:0;
       pointer-events:none;
+      display:none !important;
     }
     .access-card {
       background:var(--card-bg);
@@ -201,6 +202,11 @@
       display:flex;
       align-items:center;
       gap:0.8rem;
+      position:fixed;
+      bottom:0;
+      left:0;
+      right:0;
+      z-index:10;
     }
     textarea {
       flex:1;
@@ -249,6 +255,11 @@
       animation:blink 0.8s infinite;
     }
     @keyframes blink { 50% { opacity:0; } }
+    .image-preview {
+      max-width:200px;
+      border-radius:0.8rem;
+      margin-top:0.5rem;
+    }
   </style>
 </head>
 <body>
@@ -256,7 +267,7 @@
   <!-- Login Overlay -->
   <div class="access-screen" id="accessScreen">
     <div class="access-card">
-      <h1 class="glow">ElXora (Please Refresh The Page After Login In)</h1>
+      <h1 class="glow">ElXora</h1>
       <p>Login with Google to continue</p>
 
       <div id="g_id_onload"
@@ -285,16 +296,18 @@
 
   <!-- Main Chat -->
   <div class="main" id="mainContent">
-    <div class="chat-header">ElXora The Best</div>
+    <div class="chat-header">Chat with ElXora</div>
     <div class="chat-messages" id="chatContainer"></div>
 
     <div class="input-bar">
-      <div class="input-icon" title="Attach file/image">📎</div>
-      <div class="input-icon" title="Voice mode">🎤</div>
+      <div class="input-icon" id="fileBtn" title="Attach file/image">📎</div>
       <textarea id="prompt" placeholder="Ask me anything Roblox..." rows="1"></textarea>
       <button id="generateBtn" class="send-btn">Send</button>
     </div>
   </div>
+
+  <!-- Hidden file input -->
+  <input type="file" id="fileInput" accept="image/*" style="display:none;">
 
   <script>
     // Google Login Handler
@@ -304,20 +317,15 @@
 
       localStorage.setItem("google_user", JSON.stringify(payload));
 
-      // Hide login
       document.getElementById('accessScreen').classList.add('hidden');
+      document.getElementById('accessScreen').style.display = 'none';
 
-      // Show app
       document.getElementById('mainContent').style.display = 'flex';
       document.getElementById('sidebar').style.display = 'block';
 
-      // Show profile (only pic + name)
       document.getElementById('userProfile').style.display = 'flex';
-      document.getElementById('userAvatar').src = payload.picture || 'https://via.placeholder.com/48';
+      document.getElementById('userAvatar').src = payload.picture || 'https://via.placeholder.com/52';
       document.getElementById('userName').textContent = payload.name || 'User';
-
-      // Start chat system
-      initChat();
     }
 
     // Auto-login
@@ -325,22 +333,148 @@
     if (savedUser) {
       const payload = JSON.parse(savedUser);
       document.getElementById('accessScreen').classList.add('hidden');
+      document.getElementById('accessScreen').style.display = 'none';
       document.getElementById('mainContent').style.display = 'flex';
       document.getElementById('sidebar').style.display = 'block';
       document.getElementById('userProfile').style.display = 'flex';
-      document.getElementById('userAvatar').src = payload.picture || 'https://via.placeholder.com/48';
+      document.getElementById('userAvatar').src = payload.picture || 'https://via.placeholder.com/52';
       document.getElementById('userName').textContent = payload.name || 'User';
-      initChat();
     }
 
-    // Chat initialization
-    function initChat() {
-      // Your full chat logic here (history, send, Groq, etc.)
-      // For brevity, adding minimal placeholder – add your full Groq code below
-      document.getElementById('generateBtn').addEventListener('click', () => {
-        alert('AI response would go here – add your Groq fetch code');
-      });
+    // Files button
+    const fileBtn = document.getElementById('fileBtn');
+    const fileInput = document.getElementById('fileInput');
+    const chatContainer = document.getElementById('chatContainer');
+
+    fileBtn.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file || !file.type.startsWith('image/')) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const imgSrc = event.target.result;
+
+        const userBubble = document.createElement('div');
+        userBubble.className = 'message user-message';
+        userBubble.innerHTML = `
+          <div class="avatar">You</div>
+          <div class="message-content">
+            <img src="${imgSrc}" class="image-preview" alt="Uploaded image">
+            <br>Uploaded image
+          </div>
+        `;
+        chatContainer.appendChild(userBubble);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Typing animation
+    function typeWriter(element, text, callback) {
+      let i = 0;
+      element.innerHTML = '';
+      const cursor = document.createElement('span');
+      cursor.className = 'blinking-cursor';
+      cursor.textContent = '|';
+      element.appendChild(cursor);
+
+      function type() {
+        if (i < text.length) {
+          element.insertBefore(document.createTextNode(text.charAt(i)), cursor);
+          i++;
+          setTimeout(type, 8 + Math.random() * 6);
+        } else {
+          cursor.remove();
+          element.querySelectorAll('pre code').forEach(Prism.highlightElement);
+          if (callback) callback();
+        }
+      }
+      type();
     }
+
+    // Send message with Groq fetch
+    document.getElementById('generateBtn').addEventListener('click', async () => {
+      const prompt = document.getElementById('prompt').value.trim();
+      if (!prompt) return;
+
+      const chat = document.getElementById('chatContainer');
+
+      // User bubble
+      const userBubble = document.createElement('div');
+      userBubble.className = 'message user-message';
+      userBubble.innerHTML = `<div class="avatar">You</div><div class="message-content">${prompt}</div>`;
+      chat.appendChild(userBubble);
+
+      // AI bubble (placeholder)
+      const aiBubble = document.createElement('div');
+      aiBubble.className = 'message ai-message';
+      aiBubble.innerHTML = `<div class="avatar">E</div><div class="message-content" id="currentReply"></div>`;
+      chat.appendChild(aiBubble);
+
+      const replyEl = document.getElementById('currentReply');
+
+      document.getElementById('prompt').value = '';
+      chat.scrollTop = chat.scrollHeight;
+
+      const GROQ_API_KEY = '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';
+
+      try {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${GROQ_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are Grok as ElXora — fast, helpful Roblox Luau scripter. Respond quick, witty, direct. Always use clean code with -- comments. Wrap any Luau code in ```lua ... ``` for highlighting.'
+              },
+              { role: 'user', content: prompt }
+            ],
+            temperature: 0.7,
+            max_tokens: 2200
+          })
+        });
+
+        if (!res.ok) throw new Error('Groq error');
+
+        const data = await res.json();
+        let reply = data.choices[0].message.content.trim();
+
+        // Ensure code is wrapped in lua block if it looks like code
+        if ((reply.includes('function') || reply.includes('local ') || reply.includes('game:GetService')) && !reply.includes('```lua')) {
+          reply = '```lua\n' + reply + '\n```';
+        }
+
+        typeWriter(replyEl, reply, () => {
+          chat.scrollTop = chat.scrollHeight;
+        });
+
+      } catch (e) {
+        typeWriter(replyEl, `-- Error: ${e.message}\nTry again later.`);
+        chat.scrollTop = chat.scrollHeight;
+      }
+    });
+
+    // Enter to send
+    document.getElementById('prompt').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        document.getElementById('generateBtn').click();
+      }
+    });
+
+    // Auto-resize textarea
+    const textarea = document.getElementById('prompt');
+    textarea.addEventListener('input', () => {
+      textarea.style.height = 'auto';
+      textarea.style.height = textarea.scrollHeight + 'px';
+    });
   </script>
 </body>
 </html>
