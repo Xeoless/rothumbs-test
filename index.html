@@ -290,7 +290,7 @@
   </div>
 
   <!-- Main chat area -->
-  <div class="main">
+  <div class="main" id="mainContent" style="display:none;">
     <div class="chat-header">Chat with ElXora</div>
     <div class="chat-messages" id="chatContainer"></div>
 
@@ -308,29 +308,40 @@
       const jwt = response.credential;
       const payload = JSON.parse(atob(jwt.split('.')[1]));
 
+      console.log("Google User:", payload);
+
+      // Save user info
       localStorage.setItem("google_user", JSON.stringify(payload));
 
+      // Hide login screen
       document.getElementById('accessScreen').classList.add('hidden');
-      showUserProfile(payload);
+
+      // Show main app
+      document.getElementById('mainContent').style.display = 'flex';
+
+      // Show user profile in sidebar
+      document.getElementById('userProfile').style.display = 'flex';
+      document.getElementById('userAvatar').src = payload.picture || 'https://via.placeholder.com/48';
+      document.getElementById('userName').textContent = payload.name || 'User';
+      document.getElementById('userEmail').textContent = payload.email || 'No email';
+
+      alert("Welcome " + payload.name + "!");
     }
 
-    function showUserProfile(payload) {
+    // Auto-login check on page load
+    const savedUser = localStorage.getItem("google_user");
+    if (savedUser) {
+      const payload = JSON.parse(savedUser);
+      document.getElementById('accessScreen').classList.add('hidden');
+      document.getElementById('mainContent').style.display = 'flex';
       document.getElementById('userProfile').style.display = 'flex';
       document.getElementById('userAvatar').src = payload.picture || 'https://via.placeholder.com/48';
       document.getElementById('userName').textContent = payload.name || 'User';
       document.getElementById('userEmail').textContent = payload.email || 'No email';
     }
 
-    // Load saved user on page load
-    const savedUser = localStorage.getItem("google_user");
-    if (savedUser) {
-      const user = JSON.parse(savedUser);
-      document.getElementById('accessScreen').classList.add('hidden');
-      showUserProfile(user);
-    }
-
     // ──────────────────────────────────────────────────────────────
-    // Chat history & persistence
+    // Chat history & persistence (same as before)
     // ──────────────────────────────────────────────────────────────
     let chats = JSON.parse(localStorage.getItem('elxora_chats')) || [{ id: Date.now(), title: 'New Chat', messages: [] }];
     let currentChatId = chats[0].id;
@@ -385,24 +396,9 @@
       }
 
       chat.messages.push({ role, content });
-      if (chat.messages.length === 1 && role === 'user') {
-        chat.title = content.slice(0, 40) + (content.length > 40 ? '...' : '');
-        saveChats();
-        renderChatList();
-      }
+      saveChats();
     }
 
-    // New chat
-    newChatBtn.onclick = () => {
-      const newId = Date.now();
-      chats.push({ id: newId, title: 'New Chat', messages: [] });
-      currentChatId = newId;
-      saveChats();
-      renderChatList();
-      chatContainer.innerHTML = '';
-    };
-
-    // Typing animation
     function typeWriter(element, text, callback) {
       let i = 0;
       element.innerHTML = '';
@@ -424,6 +420,16 @@
       }
       type();
     }
+
+    // New chat
+    newChatBtn.onclick = () => {
+      const newId = Date.now();
+      chats.push({ id: newId, title: 'New Chat', messages: [] });
+      currentChatId = newId;
+      saveChats();
+      renderChatList();
+      chatContainer.innerHTML = '';
+    };
 
     // Auto-resize textarea
     const textarea = document.getElementById('prompt');
