@@ -254,14 +254,18 @@
     }
     .input-icon:hover { background:#e2e8f0; }
     .send-btn, .stop-btn {
-      padding:0 1.8rem;
+      width:50px;
+      height:50px;
       background:var(--purple);
       border:none;
-      border-radius:1rem;
+      border-radius:50%;
       color:white;
       font-weight:bold;
+      font-size:1.5rem;
       cursor:pointer;
-      font-size:1rem;
+      display:flex;
+      align-items:center;
+      justify-content:center;
       transition:background 0.2s;
     }
     .send-btn:hover, .stop-btn:hover { background:var(--purple-dark); }
@@ -275,17 +279,6 @@
       border-radius:0.8rem;
       margin-top:0.5rem;
     }
-    pre {
-      background:#f8f9fa;
-      padding:1rem;
-      border-radius:0.8rem;
-      overflow-x:auto;
-      margin:0.8rem 0;
-      border:1px solid var(--border);
-    }
-    code {
-      font-family: 'Courier New', Courier, monospace;
-    }
   </style>
 </head>
 <body>
@@ -298,7 +291,7 @@
 
       <div id="g_id_onload"
            data-client_id="101876231674-jg0de3j1ftj1s708dt236shjn6ph8ar3.apps.googleusercontent.com"
-           data-login_uri="https://mrawohub.frii.site/callback.html"
+           data-callback="handleGoogleLogin"
            data-auto_prompt="false">
       </div>
       <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="signin_with" data-shape="pill" data-logo_alignment="left"></div>
@@ -328,7 +321,7 @@
     <div class="input-bar">
       <div class="input-icon" id="fileBtn" title="Attach file/image">📎</div>
       <textarea id="prompt" placeholder="Ask me anything Roblox..." rows="1"></textarea>
-      <button id="generateBtn" class="send-btn">Send</button>
+      <button id="generateBtn" class="send-btn">↑</button>
       <button id="stopBtn" class="stop-btn" style="display:none;">Stop</button>
     </div>
   </div>
@@ -350,7 +343,7 @@
       alert("Login successful! Please refresh the page to enter ElXora.");
     }
 
-    // Check if already logged in (after manual refresh)
+    // Auto-login check (after manual refresh)
     const savedUser = localStorage.getItem("google_user");
     if (savedUser) {
       const payload = JSON.parse(savedUser);
