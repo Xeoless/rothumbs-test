@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Logging in...</title>
+  <title>Login Redirect</title>
 </head>
 <body>
   <h1>Login successful!</h1>
-  <p>Please go back to the main page or refresh it.</p>
+  <p>Now go back to the main page and refresh it.</p>
   <a href="/">Back to ElXora</a>
+  <script>
+    // Optional: try to send data back if needed, but frii.site won't allow POST response
+    console.log("Callback loaded – refresh main page");
+  </script>
 </body>
 </html>
