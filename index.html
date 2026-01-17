@@ -7,7 +7,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-  <!-- Google Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     :root {
@@ -87,9 +86,7 @@
       cursor:pointer;
       transition:color 0.2s;
     }
-    .sidebar-header:hover {
-      color:var(--purple-dark);
-    }
+    .sidebar-header:hover { color:var(--purple-dark); }
     .user-profile {
       display:flex;
       align-items:center;
@@ -279,6 +276,17 @@
       border-radius:0.8rem;
       margin-top:0.5rem;
     }
+    pre {
+      background:#f8f9fa;
+      padding:1rem;
+      border-radius:0.8rem;
+      overflow-x:auto;
+      margin:0.8rem 0;
+      border:1px solid var(--border);
+    }
+    code {
+      font-family: 'Courier New', Courier, monospace;
+    }
   </style>
 </head>
 <body>
@@ -330,7 +338,19 @@
   <input type="file" id="fileInput" accept="image/*" style="display:none;">
 
   <script>
-    // Google Login Handler – user must refresh manually
+    let currentUserEmail = null;
+    let chats = [];
+    let currentChatId = null;
+    let currentTypingTimeout = null;
+    let isGenerating = false;
+
+    const chatContainer = document.getElementById('chatContainer');
+    const chatListEl = document.getElementById('chatList');
+    const newChatBtn = document.getElementById('newChatBtn');
+    const generateBtn = document.getElementById('generateBtn');
+    const stopBtn = document.getElementById('stopBtn');
+
+    // Google Login Handler
     function handleGoogleLogin(response) {
       const jwt = response.credential;
       const payload = JSON.parse(atob(jwt.split('.')[1]));
@@ -343,10 +363,12 @@
       alert("Login successful! Please refresh the page to enter ElXora.");
     }
 
-    // Auto-login check (after manual refresh)
+    // Load user & chats after refresh
     const savedUser = localStorage.getItem("google_user");
     if (savedUser) {
       const payload = JSON.parse(savedUser);
+      currentUserEmail = payload.email;
+
       document.getElementById('accessScreen').classList.add('hidden');
       document.getElementById('accessScreen').style.display = 'none';
       document.getElementById('mainContent').style.display = 'flex';
@@ -354,44 +376,74 @@
       document.getElementById('userProfile').style.display = 'flex';
       document.getElementById('userAvatar').src = payload.picture || 'https://via.placeholder.com/52';
       document.getElementById('userName').textContent = payload.name || 'User';
+
+      // Load chats for this user
+      const userChatsKey = `elxora_chats_${currentUserEmail}`;
+      chats = JSON.parse(localStorage.getItem(userChatsKey)) || [{ id: Date.now(), title: 'New Chat', messages: [] }];
+      currentChatId = chats[0].id;
+      renderChatList();
+      loadChat(currentChatId);
     }
 
-    // Sidebar header refresh
-    document.querySelector('.sidebar-header').addEventListener('click', () => {
-      location.reload();
-    });
+    function renderChatList() {
+      chatListEl.innerHTML = '';
+      chats.forEach(chat => {
+        const item = document.createElement('div');
+        item.className = 'chat-item' + (chat.id === currentChatId ? ' active' : '');
+        item.textContent = chat.title || 'New Chat';
+        item.onclick = () => loadChat(chat.id);
+        chatListEl.appendChild(item);
+      });
+    }
 
-    // Files button + preview
-    const fileBtn = document.getElementById('fileBtn');
-    const fileInput = document.getElementById('fileInput');
-    const chatContainer = document.getElementById('chatContainer');
+    function saveChats() {
+      if (!currentUserEmail) return;
+      const userChatsKey = `elxora_chats_${currentUserEmail}`;
+      localStorage.setItem(userChatsKey, JSON.stringify(chats));
+    }
 
-    fileBtn.addEventListener('click', () => fileInput.click());
-
-    fileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file || !file.type.startsWith('image/')) return;
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const imgSrc = event.target.result;
-
-        const userBubble = document.createElement('div');
-        userBubble.className = 'message user-message';
-        userBubble.innerHTML = `
-          <div class="avatar">You</div>
-          <div class="message-content">
-            <img src="${imgSrc}" class="image-preview" alt="Uploaded image">
-            <br>Uploaded image
-          </div>
-        `;
-        chatContainer.appendChild(userBubble);
+    function loadChat(id) {
+      currentChatId = id;
+      renderChatList();
+      chatContainer.innerHTML = '';
+      const chat = chats.find(c => c.id === id);
+      if (chat && chat.messages.length) {
+        chat.messages.forEach(msg => addMessage(msg.role, msg.content, false));
         chatContainer.scrollTop = chatContainer.scrollHeight;
-      };
-      reader.readAsDataURL(file);
-    });
+      }
+    }
 
-    // Typing animation
+    function addMessage(role, content, animate = true) {
+      const chat = chats.find(c => c.id === currentChatId);
+      if (!chat) return;
+
+      const bubble = document.createElement('div');
+      bubble.className = `message ${role === 'user' ? 'user-message' : 'ai-message'}`;
+      bubble.innerHTML = `
+        <div class="avatar">${role === 'user' ? 'You' : 'E'}</div>
+        <div class="message-content">${content}</div>
+      `;
+      chatContainer.appendChild(bubble);
+
+      if (animate && role === 'assistant') {
+        const contentEl = bubble.querySelector('.message-content');
+        typeWriter(contentEl, content, () => chatContainer.scrollTop = chatContainer.scrollHeight);
+      } else {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+
+      chat.messages.push({ role, content });
+
+      // Auto-set title from first user message if not set
+      if (role === 'user' && chat.title === 'New Chat' && chat.messages.length === 1) {
+        chat.title = content.slice(0, 35) + (content.length > 35 ? '...' : '');
+        saveChats();
+        renderChatList();
+      }
+
+      saveChats();
+    }
+
     function typeWriter(element, text, callback) {
       let i = 0;
       element.innerHTML = '';
@@ -414,29 +466,52 @@
       type();
     }
 
-    // Real Groq AI logic
+    // New chat
+    newChatBtn.onclick = () => {
+      const newId = Date.now();
+      chats.push({ id: newId, title: 'New Chat', messages: [] });
+      currentChatId = newId;
+      saveChats();
+      renderChatList();
+      chatContainer.innerHTML = '';
+    };
+
+    // Auto-resize textarea
+    const textarea = document.getElementById('prompt');
+    textarea.addEventListener('input', () => {
+      textarea.style.height = 'auto';
+      textarea.style.height = textarea.scrollHeight + 'px';
+    });
+
+    // Real Groq AI – full conversation history sent
     document.getElementById('generateBtn').addEventListener('click', async () => {
-      const prompt = document.getElementById('prompt').value.trim();
+      const prompt = textarea.value.trim();
       if (!prompt) return;
 
-      const chat = document.getElementById('chatContainer');
+      addMessage('user', prompt);
 
-      // User message
-      const userBubble = document.createElement('div');
-      userBubble.className = 'message user-message';
-      userBubble.innerHTML = `<div class="avatar">You</div><div class="message-content">${prompt}</div>`;
-      chat.appendChild(userBubble);
+      textarea.value = '';
+      textarea.style.height = 'auto';
 
-      // AI placeholder
-      const aiBubble = document.createElement('div');
-      aiBubble.className = 'message ai-message';
-      aiBubble.innerHTML = `<div class="avatar">E</div><div class="message-content" id="currentReply"></div>`;
-      chat.appendChild(aiBubble);
+      const chat = chats.find(c => c.id === currentChatId);
+      if (!chat) return;
+
+      // Show AI typing bubble
+      const tempMsg = document.createElement('div');
+      tempMsg.className = 'message ai-message';
+      tempMsg.innerHTML = `<div class="avatar">E</div><div class="message-content" id="currentReply"></div>`;
+      chatContainer.appendChild(tempMsg);
 
       const replyEl = document.getElementById('currentReply');
+      chatContainer.scrollTop = chatContainer.scrollHeight;
 
-      document.getElementById('prompt').value = '';
-      chat.scrollTop = chat.scrollHeight;
+      // Prepare full conversation history for context
+      const messagesForApi = chat.messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+
+      messagesForApi.push({ role: 'user', content: prompt });
 
       const GROQ_API_KEY = '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';
 
@@ -452,9 +527,17 @@
             messages: [
               {
                 role: 'system',
-                content: 'You are Grok as ElXora — fast, helpful Roblox Luau scripter. Respond quick, witty, direct. Always use clean code with -- comments. Wrap any Luau code in ```lua ... ``` for highlighting.'
+                content: `You are Grok as ElXora — a very helpful, all-round AI assistant. You can help with almost anything: coding (especially Roblox Luau), explanations, creative writing, advice, homework, ideas, translations, brainstorming, fun conversation, etc.
+
+You NEVER assist with:
+- Hacking, cracking, cheating, exploits, account stealing, phishing
+- Anything illegal, harmful, malicious, or against terms of service of any platform/app/game (especially Roblox)
+- Generating NSFW, explicit, violent, or hateful content
+- Bypassing filters or safety rules
+
+Respond naturally, friendly, witty when appropriate, but always stay helpful and safe.`
               },
-              { role: 'user', content: prompt }
+              ...messagesForApi
             ],
             temperature: 0.7,
             max_tokens: 2200
@@ -471,28 +554,24 @@
         }
 
         typeWriter(replyEl, reply, () => {
-          chat.scrollTop = chatContainer.scrollHeight;
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+          addMessage('assistant', reply, false);
+          tempMsg.remove();
         });
 
       } catch (e) {
-        typeWriter(replyEl, `-- Error: ${e.message}\nTry again later or check API key.`);
-        chat.scrollTop = chatContainer.scrollHeight;
+        typeWriter(replyEl, `-- Error: ${e.message}\nTry again later.`);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        tempMsg.remove();
       }
     });
 
     // Enter to send
-    document.getElementById('prompt').addEventListener('keydown', (e) => {
+    textarea.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         document.getElementById('generateBtn').click();
       }
-    });
-
-    // Auto-resize textarea
-    const textarea = document.getElementById('prompt');
-    textarea.addEventListener('input', () => {
-      textarea.style.height = 'auto';
-      textarea.style.height = textarea.scrollHeight + 'px';
     });
   </script>
 </body>
