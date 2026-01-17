@@ -303,7 +303,7 @@
   </div>
 
   <script>
-    // Google Login Handler
+    // Google Login Handler – FIXED to hide login and show app
     function handleGoogleLogin(response) {
       const jwt = response.credential;
       const payload = JSON.parse(atob(jwt.split('.')[1]));
@@ -316,8 +316,9 @@
       // Hide login screen
       document.getElementById('accessScreen').classList.add('hidden');
 
-      // Show main app
+      // Show main app and sidebar content
       document.getElementById('mainContent').style.display = 'flex';
+      document.getElementById('sidebar').style.display = 'block'; // if hidden
 
       // Show user profile in sidebar
       document.getElementById('userProfile').style.display = 'flex';
@@ -334,6 +335,7 @@
       const payload = JSON.parse(savedUser);
       document.getElementById('accessScreen').classList.add('hidden');
       document.getElementById('mainContent').style.display = 'flex';
+      document.getElementById('sidebar').style.display = 'block';
       document.getElementById('userProfile').style.display = 'flex';
       document.getElementById('userAvatar').src = payload.picture || 'https://via.placeholder.com/48';
       document.getElementById('userName').textContent = payload.name || 'User';
@@ -341,7 +343,7 @@
     }
 
     // ──────────────────────────────────────────────────────────────
-    // Chat history & persistence (same as before)
+    // Chat history & persistence (unchanged from previous)
     // ──────────────────────────────────────────────────────────────
     let chats = JSON.parse(localStorage.getItem('elxora_chats')) || [{ id: Date.now(), title: 'New Chat', messages: [] }];
     let currentChatId = chats[0].id;
