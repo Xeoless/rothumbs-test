@@ -7,132 +7,225 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
+    :root {
+      --bg: #0a0a0f;
+      --sidebar-bg: #111118;
+      --card-bg: #1a1a24;
+      --purple: #a855f7;
+      --purple-dark: #7e22ce;
+      --blue: #3b82f6;
+      --text: #e0e0ff;
+      --text-muted: #a1a1aa;
+    }
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
-      background:#0a0a0f;
-      color:#e0e0ff;
+      background:var(--bg);
+      color:var(--text);
       font-family:'Inter',sans-serif;
       height:100vh;
       display:flex;
       overflow:hidden;
+      font-size:clamp(0.9rem, 2.5vw, 1rem);
     }
+    .access-screen {
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,0.92);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:1000;
+    }
+    .access-card {
+      background:var(--card-bg);
+      border:2px solid var(--purple);
+      border-radius:1.5rem;
+      padding:clamp(2rem, 5vw, 3.5rem) clamp(1.5rem, 4vw, 2.5rem);
+      max-width:clamp(320px, 80vw, 440px);
+      width:90%;
+      text-align:center;
+      box-shadow:0 0 3rem rgba(168,85,247,0.35);
+    }
+    .access-card h1.glow {
+      font-family:'Orbitron',sans-serif;
+      font-size:clamp(2.5rem, 8vw, 4rem);
+      margin-bottom:1.5rem;
+      text-shadow:0 0 1rem var(--purple), 0 0 2rem var(--purple-dark);
+    }
+    .error { color:#ff6b6b; margin-top:1rem; font-size:1rem; }
     .sidebar {
-      width:280px;
-      background:#111118;
+      width:clamp(240px, 30vw, 280px);
+      background:var(--sidebar-bg);
       border-right:1px solid #2a1a4a;
-      padding:20px;
+      padding:1.5rem;
       overflow-y:auto;
       flex-shrink:0;
+      transition:transform 0.3s;
+    }
+    @media (max-width:768px) {
+      .sidebar { 
+        position:absolute;
+        left:0;
+        top:0;
+        bottom:0;
+        transform:translateX(-100%);
+        z-index:10;
+      }
+      .sidebar.open { transform:translateX(0); }
     }
     .sidebar-header {
       font-family:'Orbitron',sans-serif;
-      color:#a855f7;
+      color:var(--purple);
       font-size:1.8rem;
-      margin-bottom:20px;
-      text-shadow:0 0 8px #a855f7;
+      margin-bottom:1.5rem;
+      text-shadow:0 0 0.5rem var(--purple);
+    }
+    .user-profile {
+      display:flex;
+      align-items:center;
+      gap:0.8rem;
+      margin-bottom:1.5rem;
+      padding-bottom:1rem;
+      border-bottom:1px solid #2a1a4a;
+    }
+    .user-avatar {
+      width:48px;
+      height:48px;
+      border-radius:50%;
+      object-fit:cover;
+      border:2px solid var(--purple);
+    }
+    .user-info {
+      flex:1;
+      min-width:0;
+    }
+    .user-name {
+      font-weight:600;
+      font-size:1.1rem;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .user-email {
+      font-size:0.85rem;
+      color:var(--text-muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
     .new-chat {
       background:#2a1a4a;
-      border:1px solid #7e22ce;
+      border:1px solid var(--purple);
       color:white;
-      padding:12px;
-      border-radius:12px;
+      padding:0.8rem;
+      border-radius:0.8rem;
       text-align:center;
       cursor:pointer;
-      margin-bottom:20px;
+      margin-bottom:1.2rem;
+      font-weight:500;
     }
     .chat-list {
       display:flex;
       flex-direction:column;
-      gap:12px;
+      gap:0.6rem;
     }
     .chat-item {
-      padding:10px 14px;
+      padding:0.7rem 1rem;
       background:#1a1a24;
-      border-radius:10px;
+      border-radius:0.6rem;
       cursor:pointer;
       transition:background 0.2s;
+      font-size:0.95rem;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
     .chat-item:hover { background:#2a1a4a; }
+    .chat-item.active { background:#4a2a6e; border-left:4px solid var(--purple); }
     .main {
       flex:1;
       display:flex;
       flex-direction:column;
     }
     .chat-header {
-      padding:16px 24px;
+      padding:1rem 1.5rem;
       background:#111118;
       border-bottom:1px solid #2a1a4a;
-      font-size:1.4rem;
+      font-size:1.3rem;
       color:#c084fc;
+      font-weight:500;
     }
     .chat-messages {
       flex:1;
-      padding:24px;
+      padding:1.5rem;
       overflow-y:auto;
       display:flex;
       flex-direction:column;
-      gap:20px;
+      gap:1.25rem;
     }
     .message {
-      max-width:80%;
-      padding:12px 18px;
-      border-radius:18px;
+      max-width:86%;
+      padding:0.9rem 1.3rem;
+      border-radius:1.2rem;
       display:flex;
       align-items:flex-start;
-      gap:12px;
+      gap:0.8rem;
+      font-size:clamp(0.95rem, 3vw, 1.05rem);
     }
     .ai-message {
       align-self:flex-start;
       background:#2a1a4a;
-      border-radius:18px 18px 18px 4px;
+      border-radius:1.2rem 1.2rem 1.2rem 0.3rem;
     }
     .user-message {
       align-self:flex-end;
       background:#3b82f6;
-      border-radius:18px 18px 4px 18px;
+      border-radius:1.2rem 1.2rem 0.3rem 1.2rem;
       flex-direction:row-reverse;
     }
     .avatar {
-      width:36px;
-      height:36px;
+      width:clamp(32px, 5vw, 38px);
+      height:clamp(32px, 5vw, 38px);
       border-radius:50%;
       background:#a855f7;
       display:flex;
       align-items:center;
       justify-content:center;
       font-weight:bold;
-      font-size:1.1rem;
+      font-size:1rem;
       flex-shrink:0;
     }
     .message-content {
       white-space:pre-wrap;
+      flex:1;
     }
     .input-bar {
-      padding:16px 24px;
+      padding:1rem 1.5rem;
       background:#111118;
       border-top:1px solid #2a1a4a;
       display:flex;
       align-items:center;
-      gap:12px;
+      gap:0.8rem;
     }
     textarea {
       flex:1;
       min-height:52px;
       max-height:160px;
-      padding:14px 18px;
+      padding:0.9rem 1.2rem;
       background:#1a1a24;
       border:1px solid #4a2a6e;
-      border-radius:16px;
+      border-radius:1rem;
       color:white;
-      font-size:1.05rem;
+      font-size:1rem;
       resize:none;
       outline:none;
     }
     .input-icon {
-      width:40px;
-      height:40px;
+      width:44px;
+      height:44px;
       background:#2a1a4a;
       border-radius:50%;
       display:flex;
@@ -144,65 +237,59 @@
     }
     .input-icon:hover { background:#4a2a6e; }
     .send-btn {
-      padding:0 24px;
+      padding:0 1.8rem;
       background:#a855f7;
       border:none;
-      border-radius:16px;
+      border-radius:1rem;
       color:white;
       font-weight:bold;
       cursor:pointer;
+      font-size:1rem;
     }
     .blinking-cursor {
       color:#c084fc;
       animation:blink 0.8s infinite;
     }
     @keyframes blink { 50% { opacity:0; } }
-    .hidden { display:none !important; }
-    .access-screen {
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,0.9);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      z-index:1000;
-    }
-    .access-card {
-      background:#1a1a24;
-      border:2px solid #a855f7;
-      border-radius:20px;
-      padding:50px 40px;
-      max-width:420px;
-      width:90%;
-      text-align:center;
-    }
-    .error { color:#ff6b6b; margin-top:16px; }
   </style>
 </head>
 <body>
 
+  <!-- Google Login Screen -->
   <div class="access-screen" id="accessScreen">
     <div class="access-card">
       <h1 class="glow">ElXora</h1>
-      <p>Enter code to access</p>
-      <form id="accessForm">
-        <input type="text" id="accessCode" placeholder="beta2026" required />
-        <button type="submit" class="btn-neon" style="margin-top:20px;width:100%;">Unlock</button>
-      </form>
+      <p>Login with Google to continue</p>
+
+      <!-- Google Sign-In Button -->
+      <div id="g_id_onload"
+           data-client_id="1091074303503-gsgnp618bh4vd2n9d0it9acs4ctujhc4.apps.googleusercontent.com"
+           data-callback="handleGoogleLogin"
+           data-auto_prompt="false">
+      </div>
+      <div class="g_id_signin" data-type="standard" data-size="large" data-theme="filled_black" data-text="signin_with" data-shape="rectangular" data-logo_alignment="left"></div>
+
       <p id="errorMsg" class="error"></p>
     </div>
   </div>
 
-  <div class="sidebar">
+  <!-- Sidebar with user profile + chat list -->
+  <div class="sidebar" id="sidebar">
     <div class="sidebar-header">ElXora</div>
-    <div class="new-chat">+ New Chat</div>
-    <div class="chat-list">
-      <div class="chat-item">Global Music Script</div>
-      <div class="chat-item">Tycoon Dropper v2</div>
-      <div class="chat-item">Obby Checkpoints</div>
+
+    <div class="user-profile" id="userProfile" style="display:none;">
+      <img id="userAvatar" class="user-avatar" src="" alt="Profile" />
+      <div class="user-info">
+        <div id="userName" class="user-name"></div>
+        <div id="userEmail" class="user-email"></div>
+      </div>
     </div>
+
+    <div class="new-chat" id="newChatBtn">+ New Chat</div>
+    <div class="chat-list" id="chatList"></div>
   </div>
 
+  <!-- Main chat area -->
   <div class="main">
     <div class="chat-header">Chat with ElXora</div>
     <div class="chat-messages" id="chatContainer"></div>
@@ -216,38 +303,104 @@
   </div>
 
   <script>
-    // Access gate – FIXED so it unlocks properly
-    const accessScreen = document.getElementById('accessScreen');
-    const mainContent = document.querySelector('.main'); // or use id if you add one
-    const form = document.getElementById('accessForm');
-    const errorMsg = document.getElementById('errorMsg');
+    // Google Login Handler
+    function handleGoogleLogin(response) {
+      const jwt = response.credential;
+      const payload = JSON.parse(atob(jwt.split('.')[1]));
 
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const code = document.getElementById('accessCode').value.trim().toLowerCase();
+      localStorage.setItem("google_user", JSON.stringify(payload));
 
-      if (code === 'beta2026') {
-        localStorage.setItem('elxora_access', 'ok');
-        accessScreen.classList.add('hidden');           // Hide login
-        mainContent.style.display = 'flex';             // Show main area
-        errorMsg.textContent = '';
-      } else {
-        errorMsg.textContent = 'Wrong code – try again';
-      }
-    });
-
-    // Auto-unlock if previously successful
-    if (localStorage.getItem('elxora_access') === 'ok') {
-      accessScreen.classList.add('hidden');
-      mainContent.style.display = 'flex';
+      document.getElementById('accessScreen').classList.add('hidden');
+      showUserProfile(payload);
     }
 
-    // Auto-resize textarea
-    const textarea = document.getElementById('prompt');
-    textarea.addEventListener('input', () => {
-      textarea.style.height = 'auto';
-      textarea.style.height = textarea.scrollHeight + 'px';
-    });
+    function showUserProfile(payload) {
+      document.getElementById('userProfile').style.display = 'flex';
+      document.getElementById('userAvatar').src = payload.picture || 'https://via.placeholder.com/48';
+      document.getElementById('userName').textContent = payload.name || 'User';
+      document.getElementById('userEmail').textContent = payload.email || 'No email';
+    }
+
+    // Load saved user on page load
+    const savedUser = localStorage.getItem("google_user");
+    if (savedUser) {
+      const user = JSON.parse(savedUser);
+      document.getElementById('accessScreen').classList.add('hidden');
+      showUserProfile(user);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Chat history & persistence
+    // ──────────────────────────────────────────────────────────────
+    let chats = JSON.parse(localStorage.getItem('elxora_chats')) || [{ id: Date.now(), title: 'New Chat', messages: [] }];
+    let currentChatId = chats[0].id;
+
+    const chatListEl = document.getElementById('chatList');
+    const chatContainer = document.getElementById('chatContainer');
+    const newChatBtn = document.getElementById('newChatBtn');
+
+    function renderChatList() {
+      chatListEl.innerHTML = '';
+      chats.forEach(chat => {
+        const item = document.createElement('div');
+        item.className = 'chat-item' + (chat.id === currentChatId ? ' active' : '');
+        item.textContent = chat.title || 'New Chat';
+        item.onclick = () => loadChat(chat.id);
+        chatListEl.appendChild(item);
+      });
+    }
+
+    function saveChats() {
+      localStorage.setItem('elxora_chats', JSON.stringify(chats));
+    }
+
+    function loadChat(id) {
+      currentChatId = id;
+      renderChatList();
+      chatContainer.innerHTML = '';
+      const chat = chats.find(c => c.id === id);
+      if (chat && chat.messages.length) {
+        chat.messages.forEach(msg => addMessage(msg.role, msg.content, false));
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+    }
+
+    function addMessage(role, content, animate = true) {
+      const chat = chats.find(c => c.id === currentChatId);
+      if (!chat) return;
+
+      const bubble = document.createElement('div');
+      bubble.className = `message ${role === 'user' ? 'user-message' : 'ai-message'}`;
+      bubble.innerHTML = `
+        <div class="avatar">${role === 'user' ? 'You' : 'E'}</div>
+        <div class="message-content">${content}</div>
+      `;
+      chatContainer.appendChild(bubble);
+
+      if (animate && role === 'assistant') {
+        const contentEl = bubble.querySelector('.message-content');
+        typeWriter(contentEl, content, () => chatContainer.scrollTop = chatContainer.scrollHeight);
+      } else {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+
+      chat.messages.push({ role, content });
+      if (chat.messages.length === 1 && role === 'user') {
+        chat.title = content.slice(0, 40) + (content.length > 40 ? '...' : '');
+        saveChats();
+        renderChatList();
+      }
+    }
+
+    // New chat
+    newChatBtn.onclick = () => {
+      const newId = Date.now();
+      chats.push({ id: newId, title: 'New Chat', messages: [] });
+      currentChatId = newId;
+      saveChats();
+      renderChatList();
+      chatContainer.innerHTML = '';
+    };
 
     // Typing animation
     function typeWriter(element, text, callback) {
@@ -272,32 +425,31 @@
       type();
     }
 
+    // Auto-resize textarea
+    const textarea = document.getElementById('prompt');
+    textarea.addEventListener('input', () => {
+      textarea.style.height = 'auto';
+      textarea.style.height = textarea.scrollHeight + 'px';
+    });
+
     // Send message
     document.getElementById('generateBtn').addEventListener('click', async () => {
       const prompt = textarea.value.trim();
       if (!prompt) return;
 
-      const chat = document.getElementById('chatContainer');
-
-      // User message
-      const userMsg = document.createElement('div');
-      userMsg.className = 'message user-message';
-      userMsg.innerHTML = `<div class="avatar">You</div><div class="message-content">${prompt}</div>`;
-      chat.appendChild(userMsg);
-
-      // AI message placeholder
-      const aiMsg = document.createElement('div');
-      aiMsg.className = 'message ai-message';
-      aiMsg.innerHTML = `<div class="avatar">E</div><div class="message-content" id="currentReply"></div>`;
-      chat.appendChild(aiMsg);
-
-      const replyEl = document.getElementById('currentReply');
+      addMessage('user', prompt);
 
       textarea.value = '';
       textarea.style.height = 'auto';
-      chat.scrollTop = chat.scrollHeight;
 
-      // Groq API call
+      const tempMsg = document.createElement('div');
+      tempMsg.className = 'message ai-message';
+      tempMsg.innerHTML = `<div class="avatar">E</div><div class="message-content" id="currentReply"></div>`;
+      chatContainer.appendChild(tempMsg);
+
+      const replyEl = document.getElementById('currentReply');
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+
       const GROQ_API_KEY = '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';
 
       try {
@@ -328,12 +480,14 @@
         }
 
         typeWriter(replyEl, reply, () => {
-          chat.scrollTop = chat.scrollHeight;
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+          addMessage('assistant', reply, false);
+          tempMsg.remove();
         });
 
       } catch (e) {
         typeWriter(replyEl, `-- Error: ${e.message}`);
-        chat.scrollTop = chat.scrollHeight;
+        chatContainer.scrollTop = chatContainer.scrollHeight;
       }
     });
 
@@ -344,6 +498,10 @@
         document.getElementById('generateBtn').click();
       }
     });
+
+    // Load initial chat
+    renderChatList();
+    loadChat(currentChatId);
   </script>
 </body>
 </html>
