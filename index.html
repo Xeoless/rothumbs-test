@@ -7,8 +7,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-  <!-- Tesseract.js for OCR (text from images) -->
-  <script src="https://unpkg.com/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
   <!-- Google Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
@@ -76,9 +74,6 @@
       padding:clamp(1rem, 3vw, 1.5rem);
       overflow-y:auto;
       flex-shrink:0;
-      display:flex;
-      flex-direction:column;
-      justify-content:space-between;
     }
     .sidebar-header {
       font-family:'Orbitron',sans-serif;
@@ -96,10 +91,10 @@
       display:flex;
       align-items:center;
       gap:0.8rem;
+      margin-bottom:1.5rem;
       padding:0.8rem;
       border-radius:1rem;
       background:rgba(107,70,193,0.08);
-      margin:0 0 1rem 0;
       position:sticky;
       bottom:1rem;
       left:0;
@@ -138,7 +133,6 @@
       flex-direction:column;
       gap:0.6rem;
       flex:1;
-      overflow-y:auto;
     }
     .chat-item {
       padding:0.8rem 1rem;
@@ -255,7 +249,7 @@
       transition:background 0.2s;
     }
     .input-icon:hover { background:#e2e8f0; }
-    .send-btn, .stop-btn {
+    .send-btn {
       padding:0 1.8rem;
       background:var(--purple);
       border:none;
@@ -266,7 +260,7 @@
       font-size:1rem;
       transition:background 0.2s;
     }
-    .send-btn:hover, .stop-btn:hover { background:var(--purple-dark); }
+    .send-btn:hover { background:var(--purple-dark); }
     .blinking-cursor {
       color:var(--purple);
       animation:blink 0.8s infinite;
@@ -276,17 +270,6 @@
       max-width:200px;
       border-radius:0.8rem;
       margin-top:0.5rem;
-    }
-    pre {
-      background:#f8f9fa;
-      padding:1rem;
-      border-radius:0.8rem;
-      overflow-x:auto;
-      margin:0.8rem 0;
-      border:1px solid var(--border);
-    }
-    code {
-      font-family: 'Courier New', Courier, monospace;
     }
   </style>
 </head>
@@ -331,7 +314,6 @@
       <div class="input-icon" id="fileBtn" title="Attach file/image">📎</div>
       <textarea id="prompt" placeholder="Ask me anything Roblox..." rows="1"></textarea>
       <button id="generateBtn" class="send-btn">Send</button>
-      <button id="stopBtn" class="stop-btn" style="display:none;">Stop</button>
     </div>
   </div>
 
@@ -339,235 +321,81 @@
   <input type="file" id="fileInput" accept="image/*" style="display:none;">
 
   <script>
-    // Google Login Handler
+    // Google Login Handler – FIXED to force hide login and show app
     function handleGoogleLogin(response) {
       const jwt = response.credential;
       const payload = JSON.parse(atob(jwt.split('.')[1]));
 
       localStorage.setItem("google_user", JSON.stringify(payload));
 
-      document.getElementById('accessScreen').classList.add('hidden');
-      document.getElementById('accessScreen').style.display = 'none';
+      // Hide login overlay
+      const loginScreen = document.getElementById('accessScreen');
+      loginScreen.classList.add('hidden');
+      loginScreen.style.display = 'none !important';
 
-      document.getElementById('mainContent').style.display = 'flex';
-      document.getElementById('sidebar').style.display = 'block';
+      // Show main app and sidebar
+      const mainContent = document.getElementById('mainContent');
+      mainContent.style.display = 'flex !important';
 
+      const sidebar = document.getElementById('sidebar');
+      sidebar.style.display = 'block';
+
+      // Show profile (pic + name only)
       document.getElementById('userProfile').style.display = 'flex';
       document.getElementById('userAvatar').src = payload.picture || 'https://via.placeholder.com/52';
       document.getElementById('userName').textContent = payload.name || 'User';
+
+      console.log("Login successful - app should now be visible");
     }
 
-    // Auto-login
+    // Auto-login if already signed in
     const savedUser = localStorage.getItem("google_user");
     if (savedUser) {
       const payload = JSON.parse(savedUser);
       document.getElementById('accessScreen').classList.add('hidden');
-      document.getElementById('accessScreen').style.display = 'none';
-      document.getElementById('mainContent').style.display = 'flex';
+      document.getElementById('accessScreen').style.display = 'none !important';
+      document.getElementById('mainContent').style.display = 'flex !important';
       document.getElementById('sidebar').style.display = 'block';
       document.getElementById('userProfile').style.display = 'flex';
       document.getElementById('userAvatar').src = payload.picture || 'https://via.placeholder.com/52';
       document.getElementById('userName').textContent = payload.name || 'User';
+      console.log("Auto-login successful");
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // Chat system with saved history & dynamic titles
-    // ──────────────────────────────────────────────────────────────
-    let chats = JSON.parse(localStorage.getItem('elxora_chats')) || [{ id: Date.now(), title: 'New Chat', messages: [] }];
-    let currentChatId = chats[0].id;
-    let currentTypingTimeout = null;
-    let isGenerating = false;
-
-    const chatListEl = document.getElementById('chatList');
+    // Files button
+    const fileBtn = document.getElementById('fileBtn');
+    const fileInput = document.getElementById('fileInput');
     const chatContainer = document.getElementById('chatContainer');
-    const newChatBtn = document.getElementById('newChatBtn');
-    const generateBtn = document.getElementById('generateBtn');
-    const stopBtn = document.getElementById('stopBtn');
 
-    function renderChatList() {
-      chatListEl.innerHTML = '';
-      chats.forEach(chat => {
-        const item = document.createElement('div');
-        item.className = 'chat-item' + (chat.id === currentChatId ? ' active' : '');
-        item.textContent = chat.title || 'New Chat';
-        item.onclick = () => loadChat(chat.id);
-        chatListEl.appendChild(item);
-      });
-    }
+    fileBtn.addEventListener('click', () => fileInput.click());
 
-    function saveChats() {
-      localStorage.setItem('elxora_chats', JSON.stringify(chats));
-    }
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file || !file.type.startsWith('image/')) return;
 
-    function loadChat(id) {
-      currentChatId = id;
-      renderChatList();
-      chatContainer.innerHTML = '';
-      const chat = chats.find(c => c.id === id);
-      if (chat && chat.messages.length) {
-        chat.messages.forEach(msg => addMessage(msg.role, msg.content, false));
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const imgSrc = event.target.result;
+
+        const userBubble = document.createElement('div');
+        userBubble.className = 'message user-message';
+        userBubble.innerHTML = `
+          <div class="avatar">You</div>
+          <div class="message-content">
+            <img src="${imgSrc}" class="image-preview" alt="Uploaded image">
+            <br>Uploaded image
+          </div>
+        `;
+        chatContainer.appendChild(userBubble);
         chatContainer.scrollTop = chatContainer.scrollHeight;
-      }
-    }
-
-    function addMessage(role, content, animate = true) {
-      const chat = chats.find(c => c.id === currentChatId);
-      if (!chat) return;
-
-      const bubble = document.createElement('div');
-      bubble.className = `message ${role === 'user' ? 'user-message' : 'ai-message'}`;
-      bubble.innerHTML = `
-        <div class="avatar">${role === 'user' ? 'You' : 'E'}</div>
-        <div class="message-content">${content}</div>
-      `;
-      chatContainer.appendChild(bubble);
-
-      if (animate && role === 'assistant') {
-        const contentEl = bubble.querySelector('.message-content');
-        typeWriter(contentEl, content, () => {
-          chatContainer.scrollTop = chatContainer.scrollHeight;
-        });
-      } else {
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-      }
-
-      chat.messages.push({ role, content });
-      saveChats();
-    }
-
-    function typeWriter(element, text, callback) {
-      let i = 0;
-      element.innerHTML = '';
-      const cursor = document.createElement('span');
-      cursor.className = 'blinking-cursor';
-      cursor.textContent = '|';
-      element.appendChild(cursor);
-
-      function type() {
-        if (i < text.length) {
-          element.insertBefore(document.createTextNode(text.charAt(i)), cursor);
-          i++;
-          currentTypingTimeout = setTimeout(type, 8 + Math.random() * 6);
-        } else {
-          cursor.remove();
-          element.querySelectorAll('pre code').forEach(Prism.highlightElement);
-          isGenerating = false;
-          generateBtn.style.display = 'inline-block';
-          stopBtn.style.display = 'none';
-          if (callback) callback();
-        }
-      }
-      type();
-    }
-
-    // New chat
-    newChatBtn.onclick = () => {
-      const newId = Date.now();
-      chats.push({ id: newId, title: 'New Chat', messages: [] });
-      currentChatId = newId;
-      saveChats();
-      renderChatList();
-      chatContainer.innerHTML = '';
-    };
-
-    // Auto-resize textarea
-    const textarea = document.getElementById('prompt');
-    textarea.addEventListener('input', () => {
-      textarea.style.height = 'auto';
-      textarea.style.height = textarea.scrollHeight + 'px';
+      };
+      reader.readAsDataURL(file);
     });
 
-    // Send message with Groq
-    generateBtn.addEventListener('click', async () => {
-      const prompt = textarea.value.trim();
-      if (!prompt) return;
-
-      addMessage('user', prompt);
-
-      textarea.value = '';
-      textarea.style.height = 'auto';
-
-      isGenerating = true;
-      generateBtn.style.display = 'none';
-      stopBtn.style.display = 'inline-block';
-
-      const tempMsg = document.createElement('div');
-      tempMsg.className = 'message ai-message';
-      tempMsg.innerHTML = `<div class="avatar">E</div><div class="message-content" id="currentReply"></div>`;
-      chatContainer.appendChild(tempMsg);
-
-      const replyEl = document.getElementById('currentReply');
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-
-      const GROQ_API_KEY = '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';
-
-      try {
-        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${GROQ_API_KEY}`
-          },
-          body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',
-            messages: [
-              {
-                role: 'system',
-                content: 'You are Grok as ElXora — fast, helpful Roblox Luau scripter. Respond quick, witty, direct. Always use clean code with -- comments. Wrap any Luau code in ```lua
-              },
-              { role: 'user', content: prompt }
-            ],
-            temperature: 0.7,
-            max_tokens: 2200
-          })
-        });
-
-        if (!res.ok) throw new Error('Groq error');
-
-        const data = await res.json();
-        let reply = data.choices[0].message.content.trim();
-
-        if ((reply.includes('function') || reply.includes('local ') || reply.includes('game:GetService')) && !reply.includes('```lua')) {
-          reply = '```lua\n' + reply + '\n```';
-        }
-
-        typeWriter(replyEl, reply, () => {
-          chatContainer.scrollTop = chatContainer.scrollHeight;
-          addMessage('assistant', reply, false);
-          tempMsg.remove();
-          isGenerating = false;
-          generateBtn.style.display = 'inline-block';
-          stopBtn.style.display = 'none';
-        });
-
-      } catch (e) {
-        typeWriter(replyEl, `-- Error: ${e.message}\nTry again later.`);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-        isGenerating = false;
-        generateBtn.style.display = 'inline-block';
-        stopBtn.style.display = 'none';
-      }
+    // Placeholder for send (add your Groq logic here later)
+    document.getElementById('generateBtn').addEventListener('click', () => {
+      alert('AI response would go here – add your Groq fetch code');
     });
-
-    // Stop button during generation
-    stopBtn.addEventListener('click', () => {
-      if (currentTypingTimeout) clearTimeout(currentTypingTimeout);
-      isGenerating = false;
-      generateBtn.style.display = 'inline-block';
-      stopBtn.style.display = 'none';
-    });
-
-    // Enter to send
-    textarea.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        document.getElementById('generateBtn').click();
-      }
-    });
-
-    // Load initial chat
-    renderChatList();
-    loadChat(currentChatId);
   </script>
 </body>
 </html>
