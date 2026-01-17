@@ -11,14 +11,15 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     :root {
-      --bg: #0a0a0f;
-      --sidebar-bg: #111118;
-      --card-bg: #1a1a24;
-      --purple: #a855f7;
-      --purple-dark: #7e22ce;
-      --blue: #3b82f6;
-      --text: #e0e0ff;
-      --text-muted: #a1a1aa;
+      --bg: #ffffff;
+      --sidebar-bg: #f8f9ff;
+      --card-bg: #ffffff;
+      --purple: #6b46c1;
+      --purple-light: #9f7aea;
+      --purple-dark: #553c9a;
+      --text: #1a202c;
+      --text-muted: #718096;
+      --border: #e2e8f0;
     }
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
@@ -28,17 +29,17 @@
       height:100vh;
       display:flex;
       overflow:hidden;
-      font-size:clamp(0.9rem, 2.5vw, 1rem);
+      font-size:clamp(0.95rem, 2.8vw, 1.05rem);
     }
     .access-screen {
       position:fixed;
       inset:0;
-      background:rgba(0,0,0,0.95);
+      background:rgba(255,255,255,0.98);
       display:flex;
       align-items:center;
       justify-content:center;
       z-index:1000;
-      transition:opacity 0.4s;
+      transition:opacity 0.5s;
     }
     .access-screen.hidden {
       opacity:0;
@@ -46,29 +47,94 @@
     }
     .access-card {
       background:var(--card-bg);
-      border:2px solid var(--purple);
+      border:2px solid var(--purple-light);
       border-radius:1.5rem;
-      padding:clamp(2rem, 5vw, 3.5rem) clamp(1.5rem, 4vw, 2.5rem);
-      max-width:clamp(320px, 80vw, 440px);
+      padding:clamp(2rem, 6vw, 4rem) clamp(1.5rem, 5vw, 3rem);
+      max-width:clamp(340px, 85vw, 480px);
       width:90%;
       text-align:center;
-      box-shadow:0 0 3rem rgba(168,85,247,0.35);
+      box-shadow:0 10px 40px rgba(107,70,193,0.15);
     }
     .access-card h1.glow {
       font-family:'Orbitron',sans-serif;
-      font-size:clamp(2.5rem, 8vw, 4rem);
+      font-size:clamp(2.8rem, 10vw, 4.5rem);
+      color:var(--purple);
       margin-bottom:1.5rem;
-      text-shadow:0 0 1rem var(--purple), 0 0 2rem var(--purple-dark);
+      text-shadow:0 0 1.5rem rgba(107,70,193,0.4);
     }
-    .error { color:#ff6b6b; margin-top:1rem; font-size:1rem; }
+    .g_id_signin {
+      margin:1.5rem auto;
+    }
+    .error { color:#e53e3e; margin-top:1rem; font-size:1rem; }
     .sidebar {
-      width:clamp(240px, 30vw, 280px);
+      width:clamp(220px, 28vw, 260px);
       background:var(--sidebar-bg);
-      border-right:1px solid #2a1a4a;
-      padding:1.5rem;
+      border-right:1px solid var(--border);
+      padding:clamp(1rem, 3vw, 1.5rem);
       overflow-y:auto;
       flex-shrink:0;
     }
+    .sidebar-header {
+      font-family:'Orbitron',sans-serif;
+      color:var(--purple);
+      font-size:clamp(1.6rem, 5vw, 2rem);
+      margin-bottom:1.5rem;
+      text-align:center;
+    }
+    .user-profile {
+      display:flex;
+      align-items:center;
+      gap:0.8rem;
+      margin-bottom:1.5rem;
+      padding:0.8rem;
+      border-radius:1rem;
+      background:rgba(107,70,193,0.08);
+    }
+    .user-avatar {
+      width:clamp(40px, 6vw, 52px);
+      height:clamp(40px, 6vw, 52px);
+      border-radius:50%;
+      object-fit:cover;
+      border:2px solid var(--purple-light);
+    }
+    .user-name {
+      font-weight:600;
+      font-size:clamp(1rem, 3vw, 1.15rem);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      color:var(--purple-dark);
+    }
+    .new-chat {
+      background:var(--purple);
+      color:white;
+      padding:0.9rem;
+      border-radius:0.9rem;
+      text-align:center;
+      cursor:pointer;
+      font-weight:600;
+      margin-bottom:1.2rem;
+      transition:background 0.2s;
+    }
+    .new-chat:hover { background:var(--purple-dark); }
+    .chat-list {
+      display:flex;
+      flex-direction:column;
+      gap:0.6rem;
+    }
+    .chat-item {
+      padding:0.8rem 1rem;
+      background:#f1f5f9;
+      border-radius:0.7rem;
+      cursor:pointer;
+      transition:background 0.2s;
+      font-size:0.95rem;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .chat-item:hover { background:#e2e8f0; }
+    .chat-item.active { background:var(--purple-light); color:white; }
     .main {
       flex:1;
       display:flex;
@@ -76,11 +142,11 @@
     }
     .chat-header {
       padding:1rem 1.5rem;
-      background:#111118;
-      border-bottom:1px solid #2a1a4a;
-      font-size:1.3rem;
-      color:#c084fc;
-      font-weight:500;
+      background:white;
+      border-bottom:1px solid var(--border);
+      font-size:clamp(1.2rem, 4vw, 1.4rem);
+      color:var(--purple);
+      font-weight:600;
     }
     .chat-messages {
       flex:1;
@@ -101,20 +167,22 @@
     }
     .ai-message {
       align-self:flex-start;
-      background:#2a1a4a;
+      background:#f3e8ff;
       border-radius:1.2rem 1.2rem 1.2rem 0.3rem;
+      color:#2d3748;
     }
     .user-message {
       align-self:flex-end;
-      background:#3b82f6;
+      background:var(--purple);
       border-radius:1.2rem 1.2rem 0.3rem 1.2rem;
+      color:white;
       flex-direction:row-reverse;
     }
     .avatar {
-      width:clamp(32px, 5vw, 38px);
-      height:clamp(32px, 5vw, 38px);
+      width:clamp(32px, 5vw, 40px);
+      height:clamp(32px, 5vw, 40px);
       border-radius:50%;
-      background:#a855f7;
+      background:var(--purple-light);
       display:flex;
       align-items:center;
       justify-content:center;
@@ -128,8 +196,8 @@
     }
     .input-bar {
       padding:1rem 1.5rem;
-      background:#111118;
-      border-top:1px solid #2a1a4a;
+      background:white;
+      border-top:1px solid var(--border);
       display:flex;
       align-items:center;
       gap:0.8rem;
@@ -139,18 +207,22 @@
       min-height:52px;
       max-height:160px;
       padding:0.9rem 1.2rem;
-      background:#1a1a24;
-      border:1px solid #4a2a6e;
+      background:#f7fafc;
+      border:1px solid var(--border);
       border-radius:1rem;
-      color:white;
+      color:var(--text);
       font-size:1rem;
       resize:none;
       outline:none;
     }
+    textarea:focus {
+      border-color:var(--purple);
+      box-shadow:0 0 0 3px rgba(107,70,193,0.2);
+    }
     .input-icon {
       width:44px;
       height:44px;
-      background:#2a1a4a;
+      background:#f1f5f9;
       border-radius:50%;
       display:flex;
       align-items:center;
@@ -159,23 +231,24 @@
       font-size:1.3rem;
       transition:background 0.2s;
     }
-    .input-icon:hover { background:#4a2a6e; }
+    .input-icon:hover { background:#e2e8f0; }
     .send-btn {
       padding:0 1.8rem;
-      background:#a855f7;
+      background:var(--purple);
       border:none;
       border-radius:1rem;
       color:white;
       font-weight:bold;
       cursor:pointer;
       font-size:1rem;
+      transition:background 0.2s;
     }
+    .send-btn:hover { background:var(--purple-dark); }
     .blinking-cursor {
-      color:#c084fc;
+      color:var(--purple);
       animation:blink 0.8s infinite;
     }
     @keyframes blink { 50% { opacity:0; } }
-    .hidden { display:none !important; }
   </style>
 </head>
 <body>
@@ -191,22 +264,19 @@
            data-callback="handleGoogleLogin"
            data-auto_prompt="false">
       </div>
-      <div class="g_id_signin" data-type="standard" data-size="large" data-theme="filled_black" data-text="signin_with" data-shape="rectangular" data-logo_alignment="left"></div>
+      <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="signin_with" data-shape="pill" data-logo_alignment="left"></div>
 
       <p id="errorMsg" class="error"></p>
     </div>
   </div>
 
   <!-- Sidebar -->
-  <div class="sidebar" id="sidebar" style="display:none;">
+  <div class="sidebar" id="sidebar">
     <div class="sidebar-header">ElXora</div>
 
     <div class="user-profile" id="userProfile" style="display:none;">
       <img id="userAvatar" class="user-avatar" src="" alt="Profile" />
-      <div class="user-info">
-        <div id="userName" class="user-name"></div>
-        <div id="userEmail" class="user-email"></div>
-      </div>
+      <div class="user-name" id="userName"></div>
     </div>
 
     <div class="new-chat" id="newChatBtn">+ New Chat</div>
@@ -214,7 +284,7 @@
   </div>
 
   <!-- Main Chat -->
-  <div class="main" id="mainContent" style="display:none;">
+  <div class="main" id="mainContent">
     <div class="chat-header">Chat with ElXora</div>
     <div class="chat-messages" id="chatContainer"></div>
 
@@ -232,33 +302,25 @@
       const jwt = response.credential;
       const payload = JSON.parse(atob(jwt.split('.')[1]));
 
-      console.log("Google User:", payload);
-
       localStorage.setItem("google_user", JSON.stringify(payload));
 
-      // Hide login overlay
-      const loginScreen = document.getElementById('accessScreen');
-      loginScreen.classList.add('hidden');
+      // Hide login
+      document.getElementById('accessScreen').classList.add('hidden');
 
-      // Show main app + sidebar
+      // Show app
       document.getElementById('mainContent').style.display = 'flex';
       document.getElementById('sidebar').style.display = 'block';
 
-      // Show user profile
+      // Show profile (only pic + name)
       document.getElementById('userProfile').style.display = 'flex';
       document.getElementById('userAvatar').src = payload.picture || 'https://via.placeholder.com/48';
       document.getElementById('userName').textContent = payload.name || 'User';
-      document.getElementById('userEmail').textContent = payload.email || 'No email';
 
-      console.log("Login successful - app should be visible now");
-
-      // Optional: small delay to ensure DOM update
-      setTimeout(() => {
-        loginScreen.style.display = 'none';
-      }, 300);
+      // Start chat system
+      initChat();
     }
 
-    // Auto-login check
+    // Auto-login
     const savedUser = localStorage.getItem("google_user");
     if (savedUser) {
       const payload = JSON.parse(savedUser);
@@ -268,15 +330,17 @@
       document.getElementById('userProfile').style.display = 'flex';
       document.getElementById('userAvatar').src = payload.picture || 'https://via.placeholder.com/48';
       document.getElementById('userName').textContent = payload.name || 'User';
-      document.getElementById('userEmail').textContent = payload.email || 'No email';
-      console.log("Auto-login successful");
+      initChat();
     }
 
-    // Rest of your chat logic (add your full Groq + chat history code here)
-    // For example:
-    document.getElementById('generateBtn').addEventListener('click', () => {
-      alert('AI chat would start here - add your Groq fetch code');
-    });
+    // Chat initialization
+    function initChat() {
+      // Your full chat logic here (history, send, Groq, etc.)
+      // For brevity, adding minimal placeholder – add your full Groq code below
+      document.getElementById('generateBtn').addEventListener('click', () => {
+        alert('AI response would go here – add your Groq fetch code');
+      });
+    }
   </script>
 </body>
 </html>
